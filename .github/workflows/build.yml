@@ -30,8 +30,6 @@ jobs:
           cache-path: ~/.pub-cache
 
       - name: Install Dependencies
-        env:
-          PUB_CACHE: ~/.pub-cache
         run: flutter pub get
 
       - name: Generate Drift Code
@@ -74,11 +72,8 @@ jobs:
           channel: 'stable'
           cache: true
           cache-key: flutter-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
-          cache-path: ~/.pub-cache
 
       - name: Install Dependencies
-        env:
-          PUB_CACHE: ~/.pub-cache
         run: flutter pub get
 
       - name: Generate Drift Code
