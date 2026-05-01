@@ -106,5 +106,16 @@ class SecureStorage {
 
 /// 全局访问点（在 main.dart 中初始化）
 class SecureStorageHolder {
-  static SecureStorage instance = throw UninitializedError('SecureStorage not initialized');
+  static SecureStorage? _instance;
+
+  static SecureStorage get instance {
+    if (_instance == null) {
+      throw StateError('SecureStorage not initialized. Call main() first.');
+    }
+    return _instance!;
+  }
+
+  static set instance(SecureStorage value) {
+    _instance = value;
+  }
 }

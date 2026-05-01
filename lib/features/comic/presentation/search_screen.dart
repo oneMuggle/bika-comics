@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/db/database.dart';
 import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../domain/comic_model.dart';
@@ -42,9 +43,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     super.dispose();
   }
 
-  void _search(String query) {
+  void _search(String query) async {
     if (query.trim().isEmpty) return;
-    ref.read(searchQueryProvider.notifier).state = query.trim();
+    final q = query.trim();
+    // 保存搜索历史
+    try {
+      DatabaseHolder.instance.insertSearchHistory(q);
+    } catch (_) {}
+    ref.read(searchQueryProvider.notifier).state = q;
     _focusNode.unfocus();
   }
 

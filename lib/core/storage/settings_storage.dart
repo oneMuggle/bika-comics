@@ -131,10 +131,31 @@ class SettingsStorage {
   // ================== Helpers ==================
 
   String? _syncRead(String key) {
-    // Synchronous read using readAll
-    // FlutterSecureStorage doesn't support sync read natively
-    // For sync access we cache values - this is a simplified approach
-    return null; // Will be loaded async
+    // Synchronous read from cached values map
+    return _cache[key];
+  }
+
+  static final Map<String, String> _cache = {};
+
+  static void _populateCache(Map<String, String> values) {
+    _cache.clear();
+    _cache.addAll(values);
+  }
+}
+
+/// SettingsStorage 全局访问器
+class SettingsStorageHolder {
+  static SettingsStorage? _instance;
+
+  static SettingsStorage get instance {
+    if (_instance == null) {
+      throw StateError('SettingsStorage not initialized. Call main() first.');
+    }
+    return _instance!;
+  }
+
+  static set instance(SettingsStorage value) {
+    _instance = value;
   }
 }
 

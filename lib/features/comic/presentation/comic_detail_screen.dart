@@ -55,7 +55,13 @@ class ComicDetailScreen extends ConsumerWidget {
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final episode = detail.episodes[index];
-                  return _buildEpisodeTile(context, episode);
+                  return _buildEpisodeTile(
+                    context,
+                    episode,
+                    detail.episodes,
+                    detail.comic.id,
+                    index,
+                  );
                 },
                 childCount: detail.episodes.length,
               ),
@@ -163,7 +169,11 @@ class ComicDetailScreen extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('下载功能开发中')),
+              );
+            },
             icon: const Icon(Icons.download),
             tooltip: '批量下载',
           ),
@@ -172,7 +182,7 @@ class ComicDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEpisodeTile(BuildContext context, Episode episode) {
+  Widget _buildEpisodeTile(BuildContext context, Episode episode, List<Episode> episodes, String comicId, int index) {
     return ListTile(
       leading: CircleAvatar(
         child: Text('${episode.order}'),
@@ -186,7 +196,15 @@ class ComicDetailScreen extends ConsumerWidget {
           : null,
       trailing: const Icon(Icons.chevron_right),
       onTap: () {
-        // TODO: 跳转到阅读器
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ReaderScreen(
+              comicId: comicId,
+              episodes: episodes,
+              initialEpisodeIndex: index,
+            ),
+          ),
+        );
       },
     );
   }

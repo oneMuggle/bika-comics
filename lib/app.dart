@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/storage/settings_storage.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/comic/presentation/comic_list_screen.dart';
+import 'features/comic/presentation/search_screen.dart';
+import 'features/download/presentation/download_screen.dart';
 import 'features/settings/presentation/settings_screen.dart';
 import 'shared/constants/app_colors.dart';
 
@@ -61,6 +63,7 @@ class _PicacgAppState extends ConsumerState<PicacgApp> {
       routes: {
         '/': (context) => const MainShell(),
         '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
         '/settings': (context) => const SettingsScreen(),
       },
     );
@@ -68,24 +71,34 @@ class _PicacgAppState extends ConsumerState<PicacgApp> {
 }
 
 /// 主框架（底部导航）
-class MainShell extends StatelessWidget {
+class MainShell extends StatefulWidget {
   const MainShell({super.key});
+
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  int _selectedIndex = 0;
+
+  final List<Widget> _screens = const [
+    ComicListScreen(),
+    SearchScreen(),
+    DownloadsScreen(),
+    SettingsScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
-        children: const [
-          ComicListScreen(),
-          SearchScreen(),
-          DownloadsScreen(),
-          SettingsScreen(),
-        ],
+        index: _selectedIndex,
+        children: _screens,
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: 0,
+        selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
-          // TODO: 切换页面
+          setState(() => _selectedIndex = index);
         },
         destinations: const [
           NavigationDestination(

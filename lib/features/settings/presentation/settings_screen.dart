@@ -5,6 +5,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../../../shared/constants/app_strings.dart';
 import '../../../core/storage/settings_storage.dart';
+import '../../../core/utils/proxy_selector.dart';
 
 /// 设置 Provider
 final settingsScreenProvider =
@@ -90,7 +91,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   }
 
   Future<void> clearCache() async {
-    await DefaultCacheManager.instance.emptyCache();
+    await DefaultCacheManager().emptyCache();
   }
 }
 

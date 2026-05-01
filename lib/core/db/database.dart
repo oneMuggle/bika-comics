@@ -46,7 +46,7 @@ class Downloads extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get comicId => integer().references(Comics, #id)();
   IntColumn get episodeId => integer().references(Episodes, #id)();
-  TextColumn get status => text>()(); // pending, downloading, completed, failed
+  TextColumn get status => text()(); // pending, downloading, completed, failed
   IntColumn get progress => integer().withDefault(const Constant(0))(); // 0-100
   TextColumn get localPath => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();

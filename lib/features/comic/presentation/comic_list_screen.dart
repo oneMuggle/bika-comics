@@ -1,10 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
+import '../../../shared/widgets/comic_card.dart';
 import '../domain/comic_model.dart';
 import 'comic_detail_screen.dart';
 
@@ -75,7 +75,9 @@ class ComicListScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final comic = comics[index];
               return ComicCard(
-                comic: comic,
+                id: comic.id,
+                title: comic.title,
+                coverUrl: comic.coverUrl,
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -87,56 +89,6 @@ class ComicListScreen extends ConsumerWidget {
             },
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// 漫画卡片组件
-class ComicCard extends StatelessWidget {
-  final Comic comic;
-  final VoidCallback onTap;
-
-  const ComicCard({
-    super.key,
-    required this.comic,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: CachedNetworkImage(
-                imageUrl: comic.coverUrl,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: AppColors.darkCard,
-                  child: const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: AppColors.darkCard,
-                  child: const Icon(Icons.broken_image),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            comic.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12),
-          ),
-        ],
       ),
     );
   }

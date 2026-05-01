@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../domain/comic_model.dart';
-
 /// 下载管理 Provider（简化版）
 final downloadListProvider = StateProvider<List<DownloadTask>>((ref) => []);
 

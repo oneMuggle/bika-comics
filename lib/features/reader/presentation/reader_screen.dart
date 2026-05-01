@@ -1,13 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
-import '../../comic/domain/comic_model.dart';
+import '../../comic/domain/comic_model.dart' as comic;
 
 /// 阅读器 Provider
 final episodePagesProvider =
@@ -27,9 +28,9 @@ final episodePagesProvider =
 });
 
 /// 阅读器页面
-class ReaderScreen extends StatefulWidget {
+class ReaderScreen extends ConsumerStatefulWidget {
   final String comicId;
-  final List<Episode> episodes;
+  final List<comic.Episode> episodes;
   final int initialEpisodeIndex;
 
   const ReaderScreen({
@@ -40,10 +41,10 @@ class ReaderScreen extends StatefulWidget {
   });
 
   @override
-  State<ReaderScreen> createState() => _ReaderScreenState();
+  ConsumerState<ReaderScreen> createState() => _ReaderScreenState();
 }
 
-class _ReaderScreenState extends State<ReaderScreen> {
+class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   late int _currentEpisodeIndex;
   late PageController _pageController;
   int _currentPage = 0;
@@ -67,7 +68,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     super.dispose();
   }
 
-  Episode get currentEpisode => widget.episodes[_currentEpisodeIndex];
+  comic.Episode get currentEpisode => widget.episodes[_currentEpisodeIndex];
 
   @override
   Widget build(BuildContext context) {
