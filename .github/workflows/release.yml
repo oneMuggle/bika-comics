@@ -1,0 +1,35 @@
+name: Create GitHub Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: picacg-release-apk
+          path: .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: false
+          files: app-release.apk
+          body: |
+            ## 哔咔漫画 Android 构建产物
+
+            **构建时间**: ${{ github.ref_name }} @ ${{ github.event.head_commit.timestamp }}
+
+            ---
+            *由 GitHub Actions 自动构建发布*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
