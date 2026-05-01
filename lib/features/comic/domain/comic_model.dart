@@ -16,6 +16,7 @@ class Comic {
   final bool isLiked;
   final bool isFollowed;
   final bool isFavorite;
+  bool get isFavourite => isFavorite;
 
   const Comic({
     required this.id,

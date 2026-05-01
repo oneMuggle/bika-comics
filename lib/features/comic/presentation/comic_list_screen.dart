@@ -33,6 +33,12 @@ class ComicListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('哔咔漫画'),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.history),

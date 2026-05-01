@@ -3,7 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/storage/settings_storage.dart';
 import 'features/auth/presentation/login_screen.dart';
+import 'features/auth/presentation/register_screen.dart';
+import 'features/comic/presentation/categories_screen.dart';
 import 'features/comic/presentation/comic_list_screen.dart';
+import 'features/comic/presentation/leaderboard_screen.dart';
+import 'features/comic/presentation/my_favourites_screen.dart';
+import 'features/comic/presentation/my_follows_screen.dart';
 import 'features/comic/presentation/search_screen.dart';
 import 'features/download/presentation/download_screen.dart';
 import 'features/settings/presentation/settings_screen.dart';
@@ -65,6 +70,10 @@ class _PicacgAppState extends ConsumerState<PicacgApp> {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/settings': (context) => const SettingsScreen(),
+        '/categories': (context) => const CategoriesScreen(),
+        '/leaderboard': (context) => const LeaderboardScreen(),
+        '/favourites': (context) => const MyFavouritesScreen(),
+        '/follows': (context) => const MyFollowsScreen(),
       },
     );
   }
@@ -94,6 +103,78 @@ class _MainShellState extends State<MainShell> {
       body: IndexedStack(
         index: _selectedIndex,
         children: _screens,
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.primary, AppColors.primaryDark],
+                ),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Icon(Icons.menu_book, size: 48, color: Colors.white),
+                  SizedBox(height: 8),
+                  Text(
+                    '哔咔漫画',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.category),
+              title: const Text('分类浏览'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/categories');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.leaderboard),
+              title: const Text('排行榜'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/leaderboard');
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.favorite),
+              title: const Text('我的收藏'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/favourites');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.bookmark),
+              title: const Text('我的追漫'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/follows');
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('设置'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/settings');
+              },
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,

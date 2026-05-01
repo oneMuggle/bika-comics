@@ -6,6 +6,7 @@ import '../../../core/api/api_client.dart';
 import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../../reader/presentation/reader_screen.dart';
+import '../data/comic_repository.dart';
 import '../domain/comic_model.dart';
 
 /// 漫画详情 Provider
@@ -146,6 +147,8 @@ class ComicDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildActionButtons(BuildContext context, ComicDetail detail) {
+    final repo = ProviderScope.containerOf(context).read(comicRepositoryProvider);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -169,13 +172,75 @@ class ComicDetailScreen extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
           IconButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('下载功能开发中')),
-              );
+            onPressed: () async {
+              try {
+                if (detail.comic.isFavourite) {
+                  await repo.unfavourite(detail.comic.id);
+                } else {
+                  await repo.favourite(detail.comic.id);
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(detail.comic.isFavourite ? '已取消收藏' : '已收藏'),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('操作失败: $e')),
+                );
+              }
             },
-            icon: const Icon(Icons.download),
-            tooltip: '批量下载',
+            icon: Icon(
+              detail.comic.isFavourite ? Icons.favorite : Icons.favorite_border,
+              color: detail.comic.isFavourite ? Colors.red : null,
+            ),
+            tooltip: '收藏',
+          ),
+          IconButton(
+            onPressed: () async {
+              try {
+                if (detail.comic.isFollowed) {
+                  await repo.unfollow(detail.comic.id);
+                } else {
+                  await repo.follow(detail.comic.id);
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(detail.comic.isFollowed ? '已取消追漫' : '已追漫'),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('操作失败: $e')),
+                );
+              }
+            },
+            icon: Icon(
+              detail.comic.isFollowed ? Icons.bookmark : Icons.bookmark_border,
+              color: detail.comic.isFollowed ? Colors.blue : null,
+            ),
+            tooltip: '追漫',
+          ),
+          IconButton(
+            onPressed: () async {
+              try {
+                await repo.like(detail.comic.id);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('已点赞'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('操作失败: $e')),
+                );
+              }
+            },
+            icon: const Icon(Icons.thumb_up_outlined),
+            tooltip: '点赞',
           ),
         ],
       ),

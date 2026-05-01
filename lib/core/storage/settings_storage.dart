@@ -137,7 +137,7 @@ class SettingsStorage {
 
   static final Map<String, String> _cache = {};
 
-  static void _populateCache(Map<String, String> values) {
+  static void populateCache(Map<String, String> values) {
     _cache.clear();
     _cache.addAll(values);
   }

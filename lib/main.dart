@@ -22,7 +22,7 @@ void main() async {
 
   // 预加载同步缓存
   final cached = await secureStorage.readAll();
-  SettingsStorage._populateCache(cached);
+  SettingsStorage.populateCache(cached);
 
   // 初始化数据库
   final db = AppDatabase();
