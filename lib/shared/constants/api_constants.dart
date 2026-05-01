@@ -35,12 +35,27 @@ class ApiEndpoints {
   static const String myFollows = '/my/follows';
   static const String follow = '/comics/{id}/follow';
 
+  // 收藏
+  static const String collections = '/collections';
+
   // 评论
   static const String comments = '/comics/{id}/comments';
   static const String sendComment = '/comics/{id}/comments';
 
   // 点赞
   static const String like = '/comics/{id}/like';
+
+  // 评论点赞 (桌面端 endpoint)
+  static const String commentLike = '/comments/{id}/like';
+
+  // 子评论
+  static const String commentChildren = '/comments/{id}/childrens';
+
+  // 评论举报
+  static const String commentReport = '/comments/{id}/report';
+
+  // 用户评论
+  static const String userComments = '/users/profile/comments';
 
   // 游戏
   static const String games = '/games';

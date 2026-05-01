@@ -11,6 +11,8 @@ import 'features/comic/presentation/my_favourites_screen.dart';
 import 'features/comic/presentation/my_follows_screen.dart';
 import 'features/comic/presentation/search_screen.dart';
 import 'features/download/presentation/download_screen.dart';
+import 'features/history/presentation/history_screen.dart';
+import 'features/home/presentation/home_screen.dart';
 import 'features/settings/presentation/settings_screen.dart';
 import 'shared/constants/app_colors.dart';
 
@@ -74,6 +76,8 @@ class _PicacgAppState extends ConsumerState<PicacgApp> {
         '/leaderboard': (context) => const LeaderboardScreen(),
         '/favourites': (context) => const MyFavouritesScreen(),
         '/follows': (context) => const MyFollowsScreen(),
+        '/history': (context) => const HistoryScreen(),
+        '/home': (context) => const HomeScreen(),
       },
     );
   }

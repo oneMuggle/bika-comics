@@ -42,7 +42,7 @@ class AppColors {
           error: error,
         ),
         scaffoldBackgroundColor: lightBg,
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: lightCard,
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -85,7 +85,7 @@ class AppColors {
           error: error,
         ),
         scaffoldBackgroundColor: darkBg,
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: darkCard,
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

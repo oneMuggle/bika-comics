@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../../shared/constants/api_constants.dart';
 import '../domain/comic_model.dart';
+import '../domain/comment_model.dart';
 
 /// 漫画操作 Repository
 class ComicRepository {
@@ -64,6 +65,50 @@ class ComicRepository {
         .map((json) => Comic.fromJson(json))
         .toList();
     return comics;
+  }
+
+  // ================== 评论系统 ==================
+
+  /// 获取漫画评论
+  Future<List<Comment>> getComments(String comicId, {int page = 1}) async {
+    final url =
+        ApiEndpoints.comments.replaceFirst('{id}', comicId) + '?page=$page';
+    final response = await _api.get(url);
+    final data = response.data['data'];
+    final docs = data['docs'] as List? ?? [];
+    return docs.map((c) => Comment.fromJson(c as Map<String, dynamic>)).toList();
+  }
+
+  /// 发送评论
+  Future<void> sendComment(String comicId, String content,
+      {String? parentId}) async {
+    final url = ApiEndpoints.sendComment.replaceFirst('{id}', comicId);
+    await _api.post(
+      url,
+      data: {
+        'content': content,
+        if (parentId != null) 'parent': parentId,
+      },
+    );
+  }
+
+  /// 点赞评论 (POST /comments/{id}/like)
+  Future<void> likeComment(String commentId) async {
+    await _api.post('/comments/$commentId/like');
+  }
+
+  /// 获取子评论
+  Future<List<Comment>> getCommentChildren(String commentId, {int page = 1}) async {
+    final url = '/comments/$commentId/childrens?page=$page';
+    final response = await _api.get(url);
+    final data = response.data['data'];
+    final docs = data['docs'] as List? ?? [];
+    return docs.map((c) => Comment.fromJson(c as Map<String, dynamic>)).toList();
+  }
+
+  /// 发送子评论
+  Future<void> sendCommentChild(String commentId, String content) async {
+    await _api.post('/comments/$commentId', data: {'content': content});
   }
 }
 

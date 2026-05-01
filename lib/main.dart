@@ -35,19 +35,3 @@ void main() async {
     ),
   );
 }
-
-/// 数据库全局访问器
-class DatabaseHolder {
-  static AppDatabase? _instance;
-
-  static AppDatabase get instance {
-    if (_instance == null) {
-      throw StateError('Database not initialized. Call main() first.');
-    }
-    return _instance!;
-  }
-
-  static set instance(AppDatabase value) {
-    _instance = value;
-  }
-}

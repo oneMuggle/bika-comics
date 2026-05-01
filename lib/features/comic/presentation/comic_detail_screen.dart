@@ -8,6 +8,7 @@ import '../../../shared/constants/app_colors.dart';
 import '../../reader/presentation/reader_screen.dart';
 import '../data/comic_repository.dart';
 import '../domain/comic_model.dart';
+import 'comments_screen.dart';
 
 /// 漫画详情 Provider
 final comicDetailProvider =
@@ -241,6 +242,17 @@ class ComicDetailScreen extends ConsumerWidget {
             },
             icon: const Icon(Icons.thumb_up_outlined),
             tooltip: '点赞',
+          ),
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => CommentsScreen(comicId: detail.comic.id),
+                ),
+              );
+            },
+            icon: const Icon(Icons.comment_outlined),
+            tooltip: '评论',
           ),
         ],
       ),

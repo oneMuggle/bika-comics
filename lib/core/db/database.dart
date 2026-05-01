@@ -79,6 +79,10 @@ class AppDatabase extends _$AppDatabase {
       (select(comics)..where((c) => c.comicId.equals(remoteId)))
           .getSingleOrNull();
 
+  Future<Comic?> getComicById(int id) =>
+      (select(comics)..where((c) => c.id.equals(id)))
+          .getSingleOrNull();
+
   Future<int> insertComic(ComicsCompanion comic) =>
       into(comics).insert(comic, mode: InsertMode.insertOrReplace);
 
@@ -171,4 +175,20 @@ LazyDatabase _openConnection() {
     final file = File(p.join(dbFolder.path, 'picacg.sqlite'));
     return NativeDatabase.createInBackground(file);
   });
+}
+
+/// 数据库全局访问器
+class DatabaseHolder {
+  static AppDatabase? _instance;
+
+  static AppDatabase get instance {
+    if (_instance == null) {
+      throw StateError('Database not initialized. Call main() first.');
+    }
+    return _instance!;
+  }
+
+  static set instance(AppDatabase value) {
+    _instance = value;
+  }
 }
