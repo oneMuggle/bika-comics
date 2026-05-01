@@ -25,9 +25,9 @@ jobs:
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
-          cache: true
-          cache-key: flutter-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
-          cache-path: ~/.pub-cache
+
+      - name: Add Flutter to PATH
+        run: echo "$HOME/flutter/bin" >> $GITHUB_PATH
 
       - name: Install Dependencies
         run: flutter pub get
@@ -70,8 +70,9 @@ jobs:
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
-          cache: true
-          cache-key: flutter-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+
+      - name: Add Flutter to PATH
+        run: echo "$HOME/flutter/bin" >> $GITHUB_PATH
 
       - name: Install Dependencies
         run: flutter pub get
