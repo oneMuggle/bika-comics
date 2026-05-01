@@ -107,13 +107,22 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
 
+      - name: Create Tag
+        if: env.KEYSTORE_BASE64 != ''
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+
       - name: Create GitHub Release
         if: env.KEYSTORE_BASE64 != ''
-        uses: ncipollo/release-action@v1
+        uses: softprops/action-gh-release@v2
         with:
           draft: false
           prerelease: false
-          artifacts: build/app/outputs/flutter-apk/app-release.apk
+          files: build/app/outputs/flutter-apk/app-release.apk
           body: |
             ## 哔咔漫画 Android 构建产物
 
@@ -121,4 +130,5 @@ jobs:
 
             ---
             *由 GitHub Actions 自动构建发布*
-          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
