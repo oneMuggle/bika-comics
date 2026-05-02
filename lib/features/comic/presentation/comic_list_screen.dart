@@ -9,12 +9,9 @@ import '../domain/comic_model.dart';
 import 'comic_detail_screen.dart';
 
 /// 漫画列表 Provider
-final comicListProvider = FutureProvider<List<Comic>>((ref) async {
+final comicListProvider = FutureProvider.family<List<Comic>, int>((ref, page) async {
   final api = ApiClient.instance;
-  final response = await api.get(ApiEndpoints.comics, queryParameters: {
-    's': 'dd',
-    'page': 1,
-  });
+  final response = await api.get(ApiEndpoints.comicsList(page: page));
   final data = response.data['data'];
   final comics = (data['comics'] as List)
       .map((json) => Comic.fromJson(json))
@@ -23,13 +20,76 @@ final comicListProvider = FutureProvider<List<Comic>>((ref) async {
 });
 
 /// 漫画列表页
-class ComicListScreen extends ConsumerWidget {
+class ComicListScreen extends ConsumerStatefulWidget {
   const ComicListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncComics = ref.watch(comicListProvider);
+  ConsumerState<ComicListScreen> createState() => _ComicListScreenState();
+}
 
+class _ComicListScreenState extends ConsumerState<ComicListScreen> {
+  final ScrollController _scrollController = ScrollController();
+  int _currentPage = 1;
+  List<Comic> _comics = [];
+  bool _isLoading = false;
+  bool _hasMore = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    _loadMore();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMore();
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoading || !_hasMore) return;
+    setState(() => _isLoading = true);
+    try {
+      final api = ApiClient.instance;
+      final response = await api.get(ApiEndpoints.comicsList(page: _currentPage));
+      final data = response.data['data'];
+      final comics = (data['comics'] as List)
+          .map((json) => Comic.fromJson(json))
+          .toList();
+      if (comics.isEmpty) {
+        _hasMore = false;
+      } else {
+        setState(() {
+          _comics.addAll(comics);
+          _currentPage++;
+        });
+      }
+    } catch (_) {
+      _hasMore = false;
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _onRefresh() async {
+    setState(() {
+      _currentPage = 1;
+      _comics = [];
+      _hasMore = true;
+    });
+    await _loadMore();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('哔咔漫画'),
@@ -48,54 +108,40 @@ class ComicListScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: asyncComics.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: AppColors.error),
-              const SizedBox(height: 16),
-              Text('加载失败: $error'),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => ref.invalidate(comicListProvider),
-                child: const Text('重试'),
-              ),
-            ],
-          ),
-        ),
-        data: (comics) => RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(comicListProvider);
-          },
-          child: GridView.builder(
-            padding: const EdgeInsets.all(12),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 0.65,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: comics.length,
-            itemBuilder: (context, index) {
-              final comic = comics[index];
-              return ComicCard(
-                id: comic.id,
-                title: comic.title,
-                coverUrl: comic.coverUrl,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => ComicDetailScreen(comicId: comic.id),
-                    ),
+      body: _comics.isEmpty && _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _onRefresh,
+              child: GridView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(12),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 0.65,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: _comics.length + (_isLoading ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index >= _comics.length) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final comic = _comics[index];
+                  return ComicCard(
+                    id: comic.id,
+                    title: comic.title,
+                    coverUrl: comic.coverUrl,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => ComicDetailScreen(comicId: comic.id),
+                        ),
+                      );
+                    },
                   );
                 },
-              );
-            },
-          ),
-        ),
-      ),
+              ),
+            ),
     );
   }
 }

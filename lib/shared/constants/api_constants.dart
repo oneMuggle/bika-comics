@@ -68,6 +68,9 @@ class ApiEndpoints {
   // WebSocket
   static const String wsUrl = 'wss://picaapi.picacomic.com';
 
+  // 漫画列表
+  static String comicsList({int page = 1}) => '/comics?page=$page';
+
   // 搜索
   static String search({required String q, String? categories, int? page}) {
     String url = '$comicsSearch?q=$q&page=${page ?? 1}';
