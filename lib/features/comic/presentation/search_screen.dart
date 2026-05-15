@@ -123,7 +123,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: FilterChip(
-                      label: Text(category.name),
+                      label: Text(category.title),
                       selected: isSelected,
                       onSelected: (_) {
                         ref.read(selectedCategoryProvider.notifier).state = category.id;
@@ -147,7 +147,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     label: Text(
                       asyncCategories.valueOrNull
                               ?.firstWhere((c) => c.id == selectedCategory, orElse: () => asyncCategories.value!.first)
-                              .name ?? selectedCategory,
+                              .title ?? selectedCategory,
                       style: const TextStyle(fontSize: 12),
                     ),
                     deleteIcon: const Icon(Icons.close, size: 16),
