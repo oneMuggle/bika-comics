@@ -110,6 +110,14 @@ class ComicRepository {
   Future<void> sendCommentChild(String commentId, String content) async {
     await _api.post('/comments/$commentId', data: {'content': content});
   }
+
+  /// 举报评论 (POST /comments/{id}/report)
+  Future<void> reportComment(String commentId, {String reason = 'spam'}) async {
+    await _api.post(
+      '/comments/$commentId/report',
+      data: {'reason': reason},
+    );
+  }
 }
 
 /// Provider

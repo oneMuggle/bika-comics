@@ -9,6 +9,8 @@ import '../../reader/presentation/reader_screen.dart';
 import '../data/comic_repository.dart';
 import '../domain/comic_model.dart';
 import 'comments_screen.dart';
+import '../../download/data/download_repository.dart';
+import '../../download/presentation/download_screen.dart';
 
 /// 漫画详情 Provider
 final comicDetailProvider =
@@ -63,6 +65,7 @@ class ComicDetailScreen extends ConsumerWidget {
                     detail.episodes,
                     detail.comic.id,
                     index,
+                    detail,
                   );
                 },
                 childCount: detail.episodes.length,
@@ -247,6 +250,17 @@ class ComicDetailScreen extends ConsumerWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
+                  builder: (context) => const DownloadsScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.download_outlined),
+            tooltip: '下载管理',
+          ),
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
                   builder: (context) => CommentsScreen(comicId: detail.comic.id),
                 ),
               );
@@ -259,7 +273,7 @@ class ComicDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEpisodeTile(BuildContext context, Episode episode, List<Episode> episodes, String comicId, int index) {
+  Widget _buildEpisodeTile(BuildContext context, Episode episode, List<Episode> episodes, String comicId, int index, ComicDetail detail) {
     return ListTile(
       leading: CircleAvatar(
         child: Text('${episode.order}'),
@@ -271,7 +285,17 @@ class ComicDetailScreen extends ConsumerWidget {
               style: const TextStyle(fontSize: 12),
             )
           : null,
-      trailing: const Icon(Icons.chevron_right),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.download, size: 20),
+            onPressed: () => _downloadEpisode(context, episode, detail.comic),
+            tooltip: '下载此章节',
+          ),
+          const Icon(Icons.chevron_right),
+        ],
+      ),
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -284,5 +308,55 @@ class ComicDetailScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  Future<void> _downloadEpisode(BuildContext context, Episode episode, Comic comic) async {
+    final repo = ProviderScope.containerOf(context).read(downloadRepositoryProvider);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('下载章节'),
+        content: Text('确定下载《${comic.title}》的第${episode.order}章吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await repo.addEpisodeDownload(
+          comicId: comic.id,
+          episodeId: episode.id,
+          episodeTitle: episode.title,
+          title: comic.title,
+          coverUrl: comic.coverUrl,
+        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('已开始下载第${episode.order}章'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('下载失败: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 }

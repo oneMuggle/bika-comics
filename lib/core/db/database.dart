@@ -41,16 +41,39 @@ class History extends Table {
   DateTimeColumn get lastReadAt => dateTime()();
 }
 
-/// 下载任务表
+/// 下载任务表 - 支持整本漫画下载
 class Downloads extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get comicId => integer().references(Comics, #id)();
-  IntColumn get episodeId => integer().references(Episodes, #id)();
-  TextColumn get status => text()(); // pending, downloading, completed, failed
-  IntColumn get progress => integer().withDefault(const Constant(0))(); // 0-100
-  TextColumn get localPath => text().nullable()();
+  TextColumn get comicId => text()(); // 远程漫画ID
+  TextColumn get title => text()(); // 漫画标题
+  TextColumn get coverUrl => text()(); // 封面URL
+  TextColumn get author => text().nullable()(); // 作者
+  TextColumn get tags => text().nullable()(); // 标签，逗号分隔
+  TextColumn get downloadedEpisodeIds => text()(); // 已下载的章节ID列表，JSON格式
+  TextColumn get pendingEpisodeIds => text()(); // 待下载的章节ID列表，JSON格式
+  TextColumn get status => text()(); // pending, downloading, paused, completed, failed
+  IntColumn get totalEpisodes => integer().withDefault(const Constant(0))(); // 总章节数
+  IntColumn get completedEpisodes => integer().withDefault(const Constant(0))(); // 已完成章节数
+  IntColumn get currentEpisodeIndex => integer().withDefault(const Constant(0))(); // 当前下载的章节索引
+  TextColumn get currentEpisodeId => text().nullable()(); // 当前下载的章节ID
+  TextColumn get localPath => text().nullable()(); // 本地保存路径
   DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
   DateTimeColumn get completedAt => dateTime().nullable()();
+}
+
+/// 下载进度表 - 跟踪每个章节的下载进度
+class DownloadProgress extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get downloadId => integer().references(Downloads, #id)();
+  TextColumn get episodeId => text()(); // 远程章节ID
+  TextColumn get episodeTitle => text()(); // 章节标题
+  IntColumn get totalPages => integer().withDefault(const Constant(0))(); // 总页数
+  IntColumn get downloadedPages => integer().withDefault(const Constant(0))(); // 已下载页数
+  TextColumn get status => text()(); // pending, downloading, completed, failed
+  IntColumn get progress => integer().withDefault(const Constant(0))(); // 进度 0-100
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
 }
 
 /// 搜索历史表
@@ -60,12 +83,24 @@ class SearchHistory extends Table {
   DateTimeColumn get searchedAt => dateTime()();
 }
 
-@DriftDatabase(tables: [Comics, Episodes, History, Downloads, SearchHistory])
+@DriftDatabase(tables: [Comics, Episodes, History, Downloads, DownloadProgress, SearchHistory])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (Migrator m) async {
+        await m.createAll();
+      },
+      onUpgrade: (Migrator m, int from, int to) async {
+        // 迁移逻辑
+      },
+    );
+  }
 
   Future<void> initialize() async {
     // 数据库初始化时可以在这里做迁移
@@ -135,21 +170,74 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Download>> getPendingDownloads() =>
       (select(downloads)..where((d) => d.status.equals('pending'))).get();
 
+  Future<List<Download>> getActiveDownloads() =>
+      (select(downloads)..where((d) => d.status.equals('downloading'))).get();
+
+  Future<List<Download>> getPausedDownloads() =>
+      (select(downloads)..where((d) => d.status.equals('paused'))).get();
+
+  Future<Download?> getDownloadByComicId(String comicId) =>
+      (select(downloads)..where((d) => d.comicId.equals(comicId)))
+          .getSingleOrNull();
+
   Future<int> insertDownload(DownloadsCompanion download) =>
       into(downloads).insert(download);
 
-  Future<void> updateDownloadStatus(int id, String status, {int? progress, String? localPath}) =>
-      (update(downloads)..where((d) => d.id.equals(id))).write(
-        DownloadsCompanion(
-          status: Value(status),
-          progress: progress != null ? Value(progress) : const Value.absent(),
-          localPath: localPath != null ? Value(localPath) : const Value.absent(),
-          completedAt: status == 'completed' ? Value(DateTime.now()) : const Value.absent(),
-        ),
-      );
+  Future<void> updateDownload(Download download) =>
+      update(downloads).replace(download);
 
-  Future<int> deleteDownload(int id) =>
-      (delete(downloads)..where((d) => d.id.equals(id))).go();
+  Future<void> updateDownloadStatus(String comicId, String status, {int? completedEpisodes, String? currentEpisodeId, String? localPath}) async {
+    final download = await getDownloadByComicId(comicId);
+    if (download == null) return;
+    
+    await (update(downloads)..where((d) => d.comicId.equals(comicId))).write(
+      DownloadsCompanion(
+        status: Value(status),
+        completedEpisodes: completedEpisodes != null ? Value(completedEpisodes) : Value(download.completedEpisodes),
+        currentEpisodeId: currentEpisodeId != null ? Value(currentEpisodeId) : Value(download.currentEpisodeId),
+        localPath: localPath != null ? Value(localPath) : Value(download.localPath),
+        updatedAt: Value(DateTime.now()),
+        completedAt: status == 'completed' ? Value(DateTime.now()) : const Value.absent(),
+      ),
+    );
+  }
+
+  Future<int> deleteDownloadByComicId(String comicId) =>
+      (delete(downloads)..where((d) => d.comicId.equals(comicId))).go();
+
+  Future<void> deleteAllDownloads() => delete(downloads).go();
+
+  // ================== DownloadProgress ==================
+
+  Future<List<DownloadProgressData>> getProgressForDownload(int downloadId) =>
+      (select(downloadProgress)..where((p) => p.downloadId.equals(downloadId))).get();
+
+  Future<DownloadProgressData?> getProgressForEpisode(int downloadId, String episodeId) =>
+      (select(downloadProgress)
+            ..where((p) => p.downloadId.equals(downloadId) & p.episodeId.equals(episodeId)))
+          .getSingleOrNull();
+
+  Future<int> insertDownloadProgress(DownloadProgressCompanion progress) =>
+      into(downloadProgress).insert(progress, mode: InsertMode.insertOrReplace);
+
+  Future<void> updateDownloadProgress(int downloadId, String episodeId, {int? downloadedPages, String? status, int? progress}) async {
+    final existing = await getProgressForEpisode(downloadId, episodeId);
+    if (existing == null) return;
+
+    await (update(downloadProgress)
+          ..where((p) => p.downloadId.equals(downloadId) & p.episodeId.equals(episodeId)))
+        .write(
+      DownloadProgressCompanion(
+        downloadedPages: downloadedPages != null ? Value(downloadedPages) : Value(existing.downloadedPages),
+        status: status != null ? Value(status) : Value(existing.status),
+        progress: progress != null ? Value(progress) : Value(existing.progress),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<int> deleteProgressForDownload(int downloadId) =>
+      (delete(downloadProgress)..where((p) => p.downloadId.equals(downloadId))).go();
 
   // ================== Search History ==================
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/storage/settings_storage.dart';
+import 'features/auth/data/auth_repository.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/register_screen.dart';
 import 'features/comic/presentation/categories_screen.dart';
@@ -53,6 +54,8 @@ class _PicacgAppState extends ConsumerState<PicacgApp> {
     super.initState();
     // 加载主题设置
     ref.read(themeModeProvider.notifier).load();
+    // 尝试恢复登录状态
+    ref.read(authStateProvider.notifier).restore();
   }
 
   @override

@@ -17,6 +17,7 @@ class SecureStorage {
   static const _keyUserName = 'user_name';
   static const _keyUserEmail = 'user_email';
   static const _keyUserAvatar = 'user_avatar';
+  static const _keyUserPassword = 'user_password'; // 保存加密后的密码用于自动登录
 
   // ================== Token ==================
 
@@ -83,6 +84,28 @@ class SecureStorage {
       _storage.delete(key: _keyUserEmail),
       _storage.delete(key: _keyUserAvatar),
     ]);
+  }
+
+  // ================== Credentials (for auto-login) ==================
+
+  /// 保存登录凭证（邮箱和密码）
+  Future<void> setCredentials({
+    required String email,
+    required String password,
+  }) async {
+    await _storage.write(key: _keyUserPassword, value: password);
+    // 注意：email 已通过 setUser() 保存，这里不需要重复保存
+  }
+
+  /// 获取保存的邮箱（通过 getUserEmail 获取）
+  Future<String?> getSavedEmail() => _storage.read(key: _keyUserEmail);
+
+  /// 获取保存的密码
+  Future<String?> getSavedPassword() => _storage.read(key: _keyUserPassword);
+
+  /// 清除登录凭证
+  Future<void> clearCredentials() async {
+    await _storage.delete(key: _keyUserPassword);
   }
 
   // ================== Generic ==================

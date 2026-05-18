@@ -81,6 +81,24 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
     }
   }
 
+  Future<void> _reportComment(String commentId) async {
+    try {
+      final repo = ref.read(comicRepositoryProvider);
+      await repo.reportComment(commentId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('举报成功')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('举报失败: $e')),
+        );
+      }
+    }
+  }
+
   void _setReplyTo(String id, String name) {
     setState(() {
       _replyToId = id;
@@ -132,6 +150,8 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
                             onLike: () => _likeComment(comments[index].id),
                             onReply: (name) =>
                                 _setReplyTo(comments[index].id, name),
+                            onReport: () =>
+                                _reportComment(comments[index].id),
                           );
                         },
                       ),
@@ -231,12 +251,35 @@ class _CommentTile extends StatelessWidget {
   final Comment comment;
   final VoidCallback onLike;
   final void Function(String name) onReply;
+  final VoidCallback onReport;
 
   const _CommentTile({
     required this.comment,
     required this.onLike,
     required this.onReply,
+    required this.onReport,
   });
+
+  void _showMoreMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.flag),
+              title: const Text('举报'),
+              onTap: () {
+                Navigator.pop(ctx);
+                onReport();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -370,6 +413,18 @@ class _CommentTile extends StatelessWidget {
                         ),
                       ),
                     ],
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => _showMoreMenu(context),
+                      child: Icon(
+                        Icons.more_vert,
+                        size: 18,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withAlpha(150),
+                      ),
+                    ),
                   ],
                 ),
               ],
