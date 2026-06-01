@@ -18,7 +18,17 @@ class ApiEndpoints {
   static const String comics = '/comics';
   static const String comicsRandom = '/comics/random';
   static const String comicsRank = '/comics/leaderboard';
+  static const String comicsKnightRank = '/comics/knight-leaderboard';
   static const String comicsSearch = '/comics/search';
+
+  // Pica 号（推荐位）解析
+  static const String picaShareSet = 'https://recommend.go2778.com/pic/share/set';
+  static const String picaShareGet = 'https://recommend.go2778.com/pic/share/get';
+  static const String picaRecommendGet = 'https://recommend.go2778.com/pic/recommend/get';
+
+  // 网络测速
+  static const String speedTest = '/speed';
+  static const String speedTestPing = '/speed/ping';
 
   // 分类
   static const String categories = '/categories';

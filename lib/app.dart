@@ -10,11 +10,13 @@ import 'features/comic/presentation/comic_list_screen.dart';
 import 'features/comic/presentation/leaderboard_screen.dart';
 import 'features/comic/presentation/my_favourites_screen.dart';
 import 'features/comic/presentation/my_follows_screen.dart';
+import 'features/comic/presentation/pica_share_resolver_screen.dart';
 import 'features/comic/presentation/search_screen.dart';
 import 'features/download/presentation/download_screen.dart';
 import 'features/history/presentation/history_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/settings/presentation/settings_screen.dart';
+import 'features/settings/presentation/speed_test_screen.dart';
 import 'shared/constants/app_colors.dart';
 
 /// 全局导航 key
@@ -81,6 +83,8 @@ class _PicacgAppState extends ConsumerState<PicacgApp> {
         '/follows': (context) => const MyFollowsScreen(),
         '/history': (context) => const HistoryScreen(),
         '/home': (context) => const HomeScreen(),
+        '/pica-share': (context) => const PicaShareResolverScreen(),
+        '/speed-test': (context) => const SpeedTestScreen(),
       },
     );
   }
@@ -152,6 +156,14 @@ class _MainShellState extends State<MainShell> {
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/leaderboard');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.tag),
+              title: const Text('Pica 号解析'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/pica-share');
               },
             ),
             const Divider(),

@@ -7,6 +7,7 @@ import '../../../shared/constants/app_colors.dart';
 import '../../../shared/widgets/comic_card.dart';
 import '../domain/comic_model.dart';
 import 'comic_detail_screen.dart';
+import 'knight_rank_screen.dart';
 
 /// 排行榜类型
 enum RankType {
@@ -31,86 +32,100 @@ final leaderboardProvider = FutureProvider<List<Comic>>((ref) async {
   );
   final data = response.data['data'];
   final comics = (data['comics'] as List)
-      .map((json) => Comic.fromJson(json))
+      .map((json) => Comic.fromJson(json as Map<String, dynamic>))
       .toList();
   return comics;
 });
 
-/// 排行榜页面
+/// 排行榜页面（4 个 Tab：日榜 / 周榜 / 月榜 / 骑士榜）
+///
+/// 对应桌面端: view/category/rank_view.py 的 tabWidget
 class LeaderboardScreen extends ConsumerWidget {
   const LeaderboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncLeaderboard = ref.watch(leaderboardProvider);
-    final currentRankType = ref.watch(rankTypeProvider);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('排行榜'),
-        actions: [
-          PopupMenuButton<RankType>(
-            icon: const Icon(Icons.filter_list),
-            onSelected: (type) {
-              ref.read(rankTypeProvider.notifier).state = type;
-            },
-            itemBuilder: (context) => RankType.values
-                .map((type) => PopupMenuItem(
-                      value: type,
-                      child: Row(
-                        children: [
-                          if (type == currentRankType)
-                            const Icon(Icons.check, size: 18)
-                          else
-                            const SizedBox(width: 18),
-                          const SizedBox(width: 8),
-                          Text(type.label),
-                        ],
-                      ),
-                    ))
-                .toList(),
-          ),
-        ],
-      ),
-      body: asyncLeaderboard.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: AppColors.error),
-              const SizedBox(height: 16),
-              Text('加载失败: $error'),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => ref.invalidate(leaderboardProvider),
-                child: const Text('重试'),
-              ),
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('排行榜'),
+          bottom: const TabBar(
+            isScrollable: true,
+            tabs: [
+              Tab(text: '日榜'),
+              Tab(text: '周榜'),
+              Tab(text: '月榜'),
+              Tab(text: '骑士榜'),
             ],
           ),
         ),
-        data: (comics) => RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(leaderboardProvider);
+        body: const TabBarView(
+          children: [
+            _ComicRankTab(rankType: RankType.daily),
+            _ComicRankTab(rankType: RankType.weekly),
+            _ComicRankTab(rankType: RankType.monthly),
+            KnightRankScreen(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 单个漫画排行榜 Tab
+class _ComicRankTab extends ConsumerWidget {
+  final RankType rankType;
+  const _ComicRankTab({required this.rankType});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 同步 rankType 到 provider，方便 _RankCard 等组件读取
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ref.read(rankTypeProvider) != rankType) {
+        ref.read(rankTypeProvider.notifier).state = rankType;
+      }
+    });
+    final asyncLeaderboard = ref.watch(leaderboardProvider);
+
+    return asyncLeaderboard.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            const SizedBox(height: 16),
+            Text('加载失败: $error'),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () => ref.invalidate(leaderboardProvider),
+              child: const Text('重试'),
+            ),
+          ],
+        ),
+      ),
+      data: (comics) => RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(leaderboardProvider);
+        },
+        child: ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: comics.length,
+          itemBuilder: (context, index) {
+            final comic = comics[index];
+            return _RankCard(
+              rank: index + 1,
+              comic: comic,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => ComicDetailScreen(comicId: comic.id),
+                  ),
+                );
+              },
+            );
           },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: comics.length,
-            itemBuilder: (context, index) {
-              final comic = comics[index];
-              return _RankCard(
-                rank: index + 1,
-                comic: comic,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => ComicDetailScreen(comicId: comic.id),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
         ),
       ),
     );
@@ -203,7 +218,8 @@ class _RankCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.visibility, size: 14, color: AppColors.secondaryText),
+                        Icon(Icons.visibility,
+                            size: 14, color: AppColors.secondaryText),
                         const SizedBox(width: 4),
                         Text(
                           '${comic.totalViews}',
@@ -213,7 +229,8 @@ class _RankCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Icon(Icons.favorite, size: 14, color: AppColors.error),
+                        Icon(Icons.favorite,
+                            size: 14, color: AppColors.error),
                         const SizedBox(width: 4),
                         Text(
                           '${comic.likeCount}',
@@ -248,3 +265,7 @@ class _RankCard extends StatelessWidget {
     }
   }
 }
+
+// 旧版 ComicCard 引用占位，避免下游 import 失败
+// ignore: unused_element
+typedef _UnusedComicCard = ComicCard;

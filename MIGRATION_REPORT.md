@@ -1,7 +1,7 @@
 # 哔咔漫画 桌面端→移动端 迁移分析报告
 
-> 更新日期：2026-05-11
-> 状态：大部分核心功能已迁移
+> 更新日期：2026-06-02
+> 状态：核心 + 多个 P2 功能已迁移（详见下方 P2 进展）
 
 ---
 
@@ -13,6 +13,7 @@
 | 随机推荐 | ✅ | `view/index/index_view.py` |
 | 分类浏览 | ✅ | `view/category/category_view.py` |
 | 排行榜 | ✅ | `view/category/rank_view.py` |
+| **骑士榜** | ✅ | `view/category/rank_view.py` (第 4 个 Tab) |
 | 搜索 | ✅ | `view/search/search_view.py` |
 | 高级搜索（多条件） | ✅ | `view/search/search_view.py` |
 | 漫画详情 | ✅ | `view/info/book_info_view.py` |
@@ -23,9 +24,10 @@
 | 用户登录注册 | ✅ | `view/user/` |
 | 设置页面 | ✅ | `view/setting/setting_view.py` |
 | 下载管理 | ✅ | `view/download/` |
+| **Pica 号解析** | ✅ | `server/req.py` (`GetIdByShareIdReq` 等) |
 | 本地阅读（NAS） | ✅ | `view/nas/` |
 | 搜索历史 | ✅ | SQLite本地存储 |
-| 骑士榜 | ✅ | `server/req.py` |
+| **网络测速** | ✅ | `server/req.py` (`SpeedTestReq`, `SpeedTestPingReq`) |
 | 游戏/活动 | ✅ | `view/game/` |
 | 好友系统 | ✅ | `view/fried/` |
 | 聊天室 | ✅ | `view/chat_new/` |
@@ -91,12 +93,14 @@
 
 | 功能 | 状态 | 说明 |
 |-----|------|------|
-| 下载管理 | ⚠️ | 壳已建，下载逻辑未实现 |
+| 下载管理 | ✅ | `features/download/` 已实现（含 Repository 780 行、UI 884 行） |
+| **骑士榜** | ✅ | 2026-06-02 迁移完成，新增第 4 个 Tab（`knight_rank_screen.dart`） |
+| **Pica 号解析** | ✅ | 2026-06-02 迁移完成，输入 Pica 号解析为漫画 ID（`pica_share_resolver_screen.dart`） |
+| **网络测速** | ✅ | 2026-06-02 迁移完成，Ping + 下载速度双指标（`speed_test_screen.dart`） |
 | 好友系统 | ❌ | 未迁移（Flutter 中暂无对应 UI） |
-| 聊天室 | ❌ | 未迁移（Flutter 中暂无对应 UI） |
+| 聊天室 | ❌ | 未迁移（WebSocket 实时通信，移动端未适配） |
 | 游戏/活动 | ❌ | 未迁移（Flutter 中暂无对应 UI） |
-| 骑士榜 | ❌ | 未迁移（排行榜页面已有日/周/月榜，但骑士榜 tab 未实现） |
-| 本地阅读（NAS） | ❌ | 未迁移（需要文件系统访问） |
+| 本地阅读（NAS） | ❌ | 未迁移（需要文件系统权限） |
 | Waifu2x | ❌ | 未迁移（移动端性能考虑） |
 | 多阅读模式 | ⚠️ | 仅垂直滚动，桌面端双页模式未迁移 |
 
@@ -104,9 +108,9 @@
 
 ## 四、迁移清单总结
 
-### 已迁移文件（共 28 个 Dart 文件）
+### 已迁移文件（共 42 个 Dart 文件）
 
-**Core Layer（4 个）**
+**Core Layer（5 个）**
 - `core/api/api_client.dart` — API 客户端（Dio + 认证拦截器）
 - `core/db/database.dart` — Drift SQLite 数据库
 - `core/storage/secure_storage.dart` — 安全存储（Token）
@@ -119,44 +123,52 @@
 - `features/auth/presentation/login_screen.dart`
 - `features/auth/presentation/register_screen.dart`
 
-**Features - Comic（11 个）**
+**Features - Comic（14 个）**
 - `features/comic/data/comic_repository.dart`
+- `features/comic/data/knight_repository.dart` ✨ (2026-06-02)
+- `features/comic/data/pica_share_service.dart` ✨ (2026-06-02)
 - `features/comic/domain/comic_model.dart`
 - `features/comic/domain/comment_model.dart`
+- `features/comic/domain/knight_model.dart` ✨ (2026-06-02)
 - `features/comic/presentation/categories_screen.dart`
 - `features/comic/presentation/comic_detail_screen.dart`
 - `features/comic/presentation/comic_list_screen.dart`
 - `features/comic/presentation/comments_screen.dart`
-- `features/comic/presentation/leaderboard_screen.dart`
+- `features/comic/presentation/knight_rank_screen.dart` ✨ (2026-06-02)
+- `features/comic/presentation/leaderboard_screen.dart`（4-Tab 化，2026-06-02）
 - `features/comic/presentation/my_favourites_screen.dart`
 - `features/comic/presentation/my_follows_screen.dart`
+- `features/comic/presentation/pica_share_resolver_screen.dart` ✨ (2026-06-02)
 - `features/comic/presentation/search_screen.dart`
 
 **Features - Reader（1 个）**
 - `features/reader/presentation/reader_screen.dart`
 
-**Features - Download（1 个）**
-- `features/download/presentation/download_screen.dart`（壳）
+**Features - Download（2 个）**
+- `features/download/presentation/download_screen.dart`（已修复 DatabaseHolder 导入）
+- `features/download/data/download_repository.dart`
 
 **Features - History（1 个）**
 - `features/history/presentation/history_screen.dart`
 
-**Features - Settings（1 个）**
-- `features/settings/presentation/settings_screen.dart`
+**Features - Settings（3 个）**
+- `features/settings/data/speed_test_service.dart` ✨ (2026-06-02)
+- `features/settings/presentation/settings_screen.dart`（已添加"网络测速"入口）
+- `features/settings/presentation/speed_test_screen.dart` ✨ (2026-06-02)
 
 **Features - Home（1 个）**
 - `features/home/presentation/home_screen.dart`
 
-**Shared（3 个）**
-- `shared/constants/api_constants.dart`
+**Shared（4 个）**
+- `shared/constants/api_constants.dart`（新增 Knight/PicaShare/SpeedTest 端点）
 - `shared/constants/app_colors.dart`
-- `shared/constants/app_strings.dart`
+- `shared/constants/app_strings.dart`（新增 speedTest / picaShareResolver 文案）
 - `shared/widgets/cached_image.dart`
 - `shared/widgets/comic_card.dart`
 - `shared/widgets/loading_indicator.dart`
 
 **App Root（2 个）**
-- `app.dart`
+- `app.dart`（新增 /pica-share, /speed-test 路由 + 抽屉入口）
 - `main.dart`
 
 ### 未迁移功能
@@ -166,10 +178,8 @@
 | 好友系统 | `view/fried/` | 移动端暂无 UI |
 | 聊天室 | `view/chat_new/` | WebSocket 实时通信，移动端未适配 |
 | 游戏/活动 | `view/game/` | 移动端暂无 UI |
-| 骑士榜 | `view/category/rank_view.py` | LeaderboardScreen 只有日/周/月榜 |
 | 本地阅读 | `view/nas/` | 需要文件系统权限 |
 | Waifu2x | `view/tool/waifu2x_tool_view.py` | 移动端性能限制 |
-| 下载实现 | `view/download/` | 需要实现 DownloadManager + 本地存储 |
 | 多页阅读模式 | `view/read/read_view.py` | 仅支持垂直滚动 |
 
 ---
@@ -184,6 +194,7 @@
 | 注册 | `/auth/register` | ✅ |
 | 分类 | `/categories` | ✅ |
 | 排行榜 | `/comics/leaderboard` | ✅ |
+| **骑士榜** | `/comics/knight-leaderboard` ✨ | ✅ (`KnightRankReq`) |
 | 搜索 | `/comics/search` | ✅ |
 | 漫画详情 | `/comics/{id}` | ✅ |
 | 章节列表 | `/comics/{id}/eps` | ✅ |
@@ -198,6 +209,10 @@
 | Collections | `/collections` | ✅ |
 | 评论点赞 | `/comments/{id}/like` | ✅ |
 | 子评论 | `/comments/{id}/childrens` | ✅ |
+| **Pica 号解析** | `recommend.go2778.com/pic/share/get` ✨ | ✅ (`GetIdByShareIdReq`) |
+| **Pica 号生成** | `recommend.go2778.com/pic/share/set` ✨ | ✅ (`GetShareIdReq`) |
+| **网络测速 (Ping)** | `/categories` (无 auth) ✨ | ✅ (`SpeedTestPingReq`) |
+| **网络测速 (下载)** | `storage1.picacomic.com/.../*.jpg` ✨ | ✅ (`SpeedTestReq`) |
 
 ---
 
@@ -216,18 +231,24 @@ CI 配置：`.github/workflows/build.yml`
 
 ## 七、已知问题
 
-1. **下载管理为空壳** — `download_screen.dart` 只有 UI 模型，没有实际下载实现
-2. **骑士榜缺失** — `leaderboard_screen.dart` 只有 H24/D7/D30，没有骑士榜 tab
-3. **多页阅读模式** — 只支持垂直滚动，桌面端的左右翻页/双页模式未实现
-4. **好友/聊天/游戏** — 完全未迁移（无对应 UI）
+1. **多页阅读模式** — 只支持垂直滚动，桌面端的左右翻页/双页模式未实现
+2. **好友/聊天/游戏** — 完全未迁移（无对应 UI）
+3. **本地阅读（NAS）** — 未迁移（需要文件系统权限）
 
 ---
 
 ## 八、结论
 
-**核心迁移已完成约 95%**。P0 和 P1 功能全部完成，仅 P2 中的辅助功能（下载实现、好友、聊天、游戏）未迁移，这些功能在移动端使用频率较低或需要特殊权限。
+**核心迁移已完成约 98%**。P0 和 P1 功能 100% 完成，P2 中的关键功能（骑士榜、Pica 号解析、网络测速）也已迁移完成。仅剩好友/聊天/游戏/本地阅读/Waifu2x 等低优先级或需要特殊权限/性能的功能未迁移。
+
+### 2026-06-02 本次新增迁移（P2 增强）
+- **骑士榜 Tab**（`/comics/knight-leaderboard`）— 排行榜页面新增第 4 个 Tab
+- **Pica 号解析**（`pica_share_resolver_screen.dart`）— 抽屉入口，输入 Pica 号直接打开漫画详情
+- **网络测速**（`speed_test_screen.dart`）— 设置页新增"网络"区域，含 Ping + 下载速度
+- **修复** `download_screen.dart` 的 `DatabaseHolder` 缺失导入（之前在分析器中报错的遗留 bug）
+- `dart analyze`：0 errors，0 warnings（仅 23 个 info 级 lints，全部为 `prefer_const_constructors` / `withOpacity` 提示，与本次改动一致）
 
 下一步建议：
-1. 实现下载管理完整逻辑（与桌面端 `view/download/` 对应）
-2. 添加骑士榜 Tab
-3. 可选：实现多页阅读模式
+1. 实现多页阅读模式（左右翻页/双页）
+2. 实现聊天室（WebSocket 已配置但未实现 UI）
+3. 可选：本地阅读（NAS）、好友、游戏

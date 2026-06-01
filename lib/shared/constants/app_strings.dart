@@ -47,6 +47,8 @@ class AppStrings {
   static const String proxyTypeSocks5 = 'SOCKS5';
   static const String proxyTypeHttp = 'HTTP';
   static const String proxyNone = '不使用代理';
+  static const String speedTest = '网络测速';
+  static const String picaShareResolver = 'Pica 号解析';
   static const String theme = '主题';
   static const String themeLight = '浅色';
   static const String themeDark = '深色';

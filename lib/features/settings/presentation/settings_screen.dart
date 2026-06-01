@@ -186,6 +186,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           const Divider(),
 
+          // 网络测速
+          _SectionHeader(title: '网络'),
+          ListTile(
+            leading: const Icon(Icons.network_check),
+            title: const Text(AppStrings.speedTest),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).pushNamed('/speed-test');
+            },
+          ),
+
           // 关于
           _SectionHeader(title: AppStrings.about),
           const ListTile(
