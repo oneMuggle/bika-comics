@@ -203,4 +203,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
     return '登录失败，请稍后重试';
   }
+
+  // ================== 签到 / 用户资料 ==================
+
+  /// 每日签到 (POST /users/punch-in)
+  /// 返回服务器返回的签到状态描述（例如 "签到成功" / "已签到"）
+  Future<String> punchIn() async {
+    final response = await _api.post(ApiEndpoints.punchIn);
+    final data = response.data['data'] ?? {};
+    // Picac API 返回 {"status": "ok"} 或类似结构，提取可能的消息字段
+    return (data['message'] ?? data['msg'] ?? data['status'] ?? '签到成功')
+        .toString();
+  }
+
+  /// 拉取最新用户资料 (GET /users/profile)，刷新 AuthState.user
+  Future<void> refreshProfile() async {
+    try {
+      final response = await _api.get(ApiEndpoints.userProfile);
+      final user = response.data['data']?['user'] ?? response.data['data'];
+      if (user is! Map) return;
+      final updated = AuthUser(
+        id: user['_id'] ?? user['id'] ?? state.user?.id ?? '',
+        name: user['name'] ?? state.user?.name ?? '',
+        email: user['email'] ?? state.user?.email ?? '',
+        avatar: user['avatar']?['path'] ?? state.user?.avatar ?? '',
+        birthday: user['birthday'] ?? state.user?.birthday,
+        level: user['level'] ?? state.user?.level ?? 0,
+        gender: user['gender'] ?? state.user?.gender ?? 'm',
+      );
+      state = state.copyWith(user: updated);
+    } catch (_) {
+      // 拉取失败保留旧值
+    }
+  }
 }

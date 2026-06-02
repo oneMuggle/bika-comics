@@ -1,6 +1,6 @@
 # 哔咔漫画 桌面端→移动端 迁移分析报告
 
-> 更新日期：2026-06-02
+> 更新日期：2026-06-03
 > 状态：核心 + 多个 P2 功能已迁移（详见下方 P2 进展）
 
 ---
@@ -58,6 +58,13 @@
 | 登录/注册 | ✅ | `features/auth/presentation/` |
 | 设置页面 | ✅ | `features/settings/presentation/settings_screen.dart` |
 | 下载管理（壳） | ⚠️ | `features/download/presentation/download_screen.dart`（空壳，未实现下载逻辑） |
+| **个人中心** | ✅ | `features/auth/presentation/profile_screen.dart` (2026-06-03) |
+| **每日签到** | ✅ | `features/auth/data/auth_repository.dart#punchIn()` (2026-06-03) |
+| **我的评论** | ✅ | `features/auth/data/user_repository.dart` (2026-06-03) |
+| **搜索热词** | ✅ | `features/comic/data/comic_repository.dart#getKeywords()` (2026-06-03) |
+| **搜索历史 UI** | ✅ | `features/comic/presentation/search_screen.dart` (2026-06-03) |
+| **漫画相关推荐** | ✅ | `features/comic/data/comic_repository.dart#getComicRecommendation()` (2026-06-03) |
+| **阅读器页码跳转** | ✅ | `features/reader/presentation/reader_screen.dart` (2026-06-03 修复) |
 | API Client | ✅ | `core/api/api_client.dart` |
 | 数据库（Drift） | ✅ | `core/db/database.dart` |
 | 安全存储 | ✅ | `core/storage/secure_storage.dart` |
@@ -97,6 +104,13 @@
 | **骑士榜** | ✅ | 2026-06-02 迁移完成，新增第 4 个 Tab（`knight_rank_screen.dart`） |
 | **Pica 号解析** | ✅ | 2026-06-02 迁移完成，输入 Pica 号解析为漫画 ID（`pica_share_resolver_screen.dart`） |
 | **网络测速** | ✅ | 2026-06-02 迁移完成，Ping + 下载速度双指标（`speed_test_screen.dart`） |
+| **搜索热词** | ✅ | 2026-06-03 迁移完成（`/keywords`），搜索页空态展示 |
+| **搜索历史 UI** | ✅ | 2026-06-03 迁移完成，本地历史 chips + 单条/一键清除 |
+| **漫画相关推荐** | ✅ | 2026-06-03 迁移完成（`/comics/{id}/recommendation`），详情页底部水平滑动 |
+| **个人中心** | ✅ | 2026-06-03 迁移完成（`/profile`），含签到/我的评论/快捷入口/退出 |
+| **每日签到** | ✅ | 2026-06-03 迁移完成（`/users/punch-in`） |
+| **我的评论** | ✅ | 2026-06-03 迁移完成（`/users/my-comments`） |
+| **阅读器页码跳转** | ✅ | 2026-06-03 修复原 stub，输入页码跳转 |
 | 好友系统 | ❌ | 未迁移（Flutter 中暂无对应 UI） |
 | 聊天室 | ❌ | 未迁移（WebSocket 实时通信，移动端未适配） |
 | 游戏/活动 | ❌ | 未迁移（Flutter 中暂无对应 UI） |
@@ -248,7 +262,37 @@ CI 配置：`.github/workflows/build.yml`
 - **修复** `download_screen.dart` 的 `DatabaseHolder` 缺失导入（之前在分析器中报错的遗留 bug）
 - `dart analyze`：0 errors，0 warnings（仅 23 个 info 级 lints，全部为 `prefer_const_constructors` / `withOpacity` 提示，与本次改动一致）
 
+### 2026-06-03 本次新增迁移（P2 增强 - 第二批）
+
+本次新增 5 个功能 / 1 个修复：
+
+1. **搜索热词** (`/keywords`) — 搜索页空态展示「热门搜索」ActionChips，点击即搜索
+2. **搜索历史（UI）** — 搜索页空态展示本地历史（InputChips + 单条删除 + 一键清空）
+3. **漫画相关推荐** (`/comics/{id}/recommendation`) — 漫画详情页底部水平滑动推荐
+4. **每日签到** (`/users/punch-in`) — 个人中心 action tile，调用 API 并提示结果
+5. **我的评论** (`/users/my-comments`) — 个人中心下拉刷新展示
+6. **个人中心页** (`/profile`) — 整合：用户信息、签到、阅读历史/收藏/追漫跳转、我的评论、退出登录
+7. **修复** 阅读器 `_showPageDialog` stub → 真实页码跳转对话框（输入页码 + 范围校验 + 暗色主题）
+8. **修复** 数据库缺失 `getSearchHistoryByKeyword` / `deleteSearchHistoryById` 方法（搜索页单条删除历史需要）
+
+**新增文件（2 个）**
+- `lib/features/auth/data/user_repository.dart` — UserRepository（my-comments API）+ provider
+- `lib/features/auth/presentation/profile_screen.dart` — 个人中心页
+
+**修改文件（7 个）**
+- `lib/shared/constants/api_constants.dart` — 新增 4 个端点常量
+- `lib/features/comic/data/comic_repository.dart` — `getKeywords()` / `getComicRecommendation()`
+- `lib/features/auth/data/auth_repository.dart` — `punchIn()` / `refreshProfile()`
+- `lib/features/comic/presentation/comic_detail_screen.dart` — 推荐 section
+- `lib/features/comic/presentation/search_screen.dart` — 热词 + 历史 discovery 页
+- `lib/features/reader/presentation/reader_screen.dart` — 真实页码跳转对话框
+- `lib/core/db/database.dart` — 新增 search history 单条查询/删除方法
+- `lib/app.dart` — `/profile` 路由 + 抽屉入口
+
+`dart analyze`：0 errors，0 warnings（仅 97 个 info 级 lints，包含本次新增的 prefer_const_constructors 等性能提示）
+
 下一步建议：
 1. 实现多页阅读模式（左右翻页/双页）
-2. 实现聊天室（WebSocket 已配置但未实现 UI）
-3. 可选：本地阅读（NAS）、好友、游戏
+2. 聊天室（WebSocket）
+3. 完善下载管理（已实现 Repository + UI 框架，缺并发任务调度）
+4. 好友 / 游戏 / 本地阅读（NAS）/ Waifu2x（可选）

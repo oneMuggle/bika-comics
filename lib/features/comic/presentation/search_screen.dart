@@ -5,6 +5,8 @@ import '../../../core/api/api_client.dart';
 import '../../../core/db/database.dart' hide Comic;
 import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
+import '../../../shared/constants/app_strings.dart';
+import '../data/comic_repository.dart';
 import '../domain/comic_model.dart';
 import 'categories_screen.dart';
 import 'comic_detail_screen.dart';
@@ -25,6 +27,26 @@ final searchResultProvider = FutureProvider<List<Comic>>((ref) async {
       .map((json) => Comic.fromJson(json))
       .toList();
   return comics;
+});
+
+/// 搜索热词 Provider (GET /keywords)
+final searchKeywordsProvider = FutureProvider<List<String>>((ref) async {
+  final repo = ref.read(comicRepositoryProvider);
+  try {
+    return await repo.getKeywords();
+  } catch (_) {
+    return const [];
+  }
+});
+
+/// 本地搜索历史 Provider (Drift)
+final localSearchHistoryProvider = FutureProvider<List<String>>((ref) async {
+  try {
+    final rows = await DatabaseHolder.instance.getSearchHistory(limit: 10);
+    return rows.map((r) => r.keyword).toList();
+  } catch (_) {
+    return const [];
+  }
 });
 
 /// 搜索页
@@ -55,6 +77,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     } catch (_) {}
     ref.read(searchQueryProvider.notifier).state = q;
     _focusNode.unfocus();
+    // 刷新历史列表
+    ref.invalidate(localSearchHistoryProvider);
+  }
+
+  Future<void> _clearHistory() async {
+    try {
+      await DatabaseHolder.instance.clearSearchHistory();
+      ref.invalidate(localSearchHistoryProvider);
+    } catch (_) {}
   }
 
   @override
@@ -62,6 +93,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final results = ref.watch(searchResultProvider);
     final selectedCategory = ref.watch(selectedCategoryProvider);
     final asyncCategories = ref.watch(categoriesProvider);
+    final hasQuery = ref.watch(searchQueryProvider).isNotEmpty;
+    final asyncKeywords = ref.watch(searchKeywordsProvider);
+    final asyncHistory = ref.watch(localSearchHistoryProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -163,66 +197,238 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
             ),
           Expanded(
-            child: results.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, s) => Center(child: Text('搜索失败: $e')),
-              data: (comics) {
-                if (comics.isEmpty && ref.watch(searchQueryProvider).isNotEmpty) {
-                  return const Center(child: Text('没有找到相关漫画'));
-                }
-                return GridView.builder(
-                  padding: const EdgeInsets.all(12),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    childAspectRatio: 0.65,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: comics.length,
-                  itemBuilder: (context, index) {
-                    final comic = comics[index];
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                ComicDetailScreen(comicId: comic.id),
-                          ),
-                        );
-                      },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                comic.coverUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  color: AppColors.darkCard,
-                                  child: const Icon(Icons.broken_image),
+            child: !hasQuery
+                ? _buildDiscover(
+                    context,
+                    asyncKeywords,
+                    asyncHistory,
+                  )
+                : results.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (e, s) => Center(child: Text('搜索失败: $e')),
+                    data: (comics) {
+                      if (comics.isEmpty &&
+                          ref.watch(searchQueryProvider).isNotEmpty) {
+                        return const Center(child: Text('没有找到相关漫画'));
+                      }
+                      return GridView.builder(
+                        padding: const EdgeInsets.all(12),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          childAspectRatio: 0.65,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
+                        itemCount: comics.length,
+                        itemBuilder: (context, index) {
+                          final comic = comics[index];
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      ComicDetailScreen(comicId: comic.id),
                                 ),
-                              ),
+                              );
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      comic.coverUrl,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        color: AppColors.darkCard,
+                                        child: const Icon(Icons.broken_image),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  comic.title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            comic.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDiscover(
+    BuildContext context,
+    AsyncValue<List<String>> asyncKeywords,
+    AsyncValue<List<String>> asyncHistory,
+  ) {
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        // 搜索热词
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: const [
+              Icon(Icons.local_fire_department,
+                  size: 18, color: Colors.orange),
+              SizedBox(width: 6),
+              Text(
+                '热门搜索',
+                style:
+                    TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        asyncKeywords.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ),
+          error: (_, __) => const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text('获取热词失败',
+                style: TextStyle(color: Colors.grey, fontSize: 12)),
+          ),
+          data: (keywords) {
+            if (keywords.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text('暂无热词',
+                    style: TextStyle(color: Colors.grey, fontSize: 12)),
+              );
+            }
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: keywords
+                    .map(
+                      (kw) => ActionChip(
+                        avatar: const Icon(
+                          Icons.trending_up,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
+                        label: Text(kw),
+                        onPressed: () {
+                          _controller.text = kw;
+                          _controller.selection = TextSelection.collapsed(
+                              offset: kw.length);
+                          _search(kw);
+                        },
+                      ),
+                    )
+                    .toList(),
+              ),
+            );
+          },
+        ),
+
+        const SizedBox(height: 16),
+
+        // 搜索历史
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              const Icon(Icons.history, size: 18, color: Colors.blueGrey),
+              const SizedBox(width: 6),
+              const Text(
+                AppStrings.searchHistory,
+                style:
+                    TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              asyncHistory.maybeWhen(
+                data: (list) => list.isEmpty
+                    ? const SizedBox.shrink()
+                    : TextButton.icon(
+                        onPressed: _clearHistory,
+                        icon: const Icon(Icons.delete_outline, size: 16),
+                        label: const Text(AppStrings.clearHistory,
+                            style: TextStyle(fontSize: 12)),
+                      ),
+                orElse: () => const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+        asyncHistory.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (history) {
+            if (history.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text('暂无搜索历史',
+                    style: TextStyle(color: Colors.grey, fontSize: 12)),
+              );
+            }
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: history
+                    .map(
+                      (kw) => InputChip(
+                        label: Text(kw),
+                        onPressed: () {
+                          _controller.text = kw;
+                          _controller.selection = TextSelection.collapsed(
+                              offset: kw.length);
+                          _search(kw);
+                        },
+                        onDeleted: () async {
+                          // 单条删除：从 SearchHistory 表按 keyword 查找
+                          try {
+                            final row = await DatabaseHolder.instance
+                                .getSearchHistoryByKeyword(kw);
+                            if (row != null) {
+                              await DatabaseHolder.instance
+                                  .deleteSearchHistoryById(row.id);
+                              ref.invalidate(localSearchHistoryProvider);
+                            }
+                          } catch (_) {}
+                        },
+                      ),
+                    )
+                    .toList(),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

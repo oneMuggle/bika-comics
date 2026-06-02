@@ -32,6 +32,17 @@ final comicDetailProvider =
   return ComicDetail(comic: comic, episodes: episodes);
 });
 
+/// 漫画相关推荐 Provider (GET /comics/{id}/recommendation)
+final comicRecommendationProvider =
+    FutureProvider.family<List<Comic>, String>((ref, comicId) async {
+  final repo = ref.read(comicRepositoryProvider);
+  try {
+    return await repo.getComicRecommendation(comicId);
+  } catch (_) {
+    return const [];
+  }
+});
+
 /// 漫画详情页
 class ComicDetailScreen extends ConsumerWidget {
   final String comicId;
@@ -71,9 +82,98 @@ class ComicDetailScreen extends ConsumerWidget {
                 childCount: detail.episodes.length,
               ),
             ),
+            // 相关推荐
+            SliverToBoxAdapter(
+              child: _buildRecommendationSection(context, ref, comicId),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildRecommendationSection(
+      BuildContext context, WidgetRef ref, String comicId) {
+    final asyncRecs = ref.watch(comicRecommendationProvider(comicId));
+    return asyncRecs.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (recs) {
+        if (recs.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.recommend, color: AppColors.primary, size: 20),
+                  const SizedBox(width: 6),
+                  const Text(
+                    '相关推荐',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 180,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: recs.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, i) {
+                    final c = recs[i];
+                    return GestureDetector(
+                      onTap: () {
+                        // 跳转新的漫画详情：使用 pushReplacement 以避免返回栈累积
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ComicDetailScreen(comicId: c.id),
+                          ),
+                        );
+                      },
+                      child: SizedBox(
+                        width: 110,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: Image.network(
+                                  c.coverUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    color: AppColors.darkCard,
+                                    child: const Icon(Icons.broken_image),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              c.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

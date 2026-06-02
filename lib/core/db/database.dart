@@ -254,6 +254,13 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
 
+  Future<int> deleteSearchHistoryById(int id) =>
+      (delete(searchHistory)..where((s) => s.id.equals(id))).go();
+
+  Future<SearchHistoryData?> getSearchHistoryByKeyword(String keyword) =>
+      (select(searchHistory)..where((s) => s.keyword.equals(keyword)))
+          .getSingleOrNull();
+
   Future<void> clearSearchHistory() => delete(searchHistory).go();
 }
 

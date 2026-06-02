@@ -118,6 +118,30 @@ class ComicRepository {
       data: {'reason': reason},
     );
   }
+
+  // ================== 搜索热词 ==================
+
+  /// 获取搜索热词列表 (GET /keywords)
+  Future<List<String>> getKeywords() async {
+    final response = await _api.get(ApiEndpoints.keywords);
+    final data = response.data['data'];
+    final list = data['keywords'] as List? ?? [];
+    return list.map((e) => e.toString()).toList();
+  }
+
+  // ================== 漫画推荐 ==================
+
+  /// 获取相关漫画推荐 (GET /comics/{id}/recommendation)
+  Future<List<Comic>> getComicRecommendation(String comicId) async {
+    final url =
+        ApiEndpoints.comicRecommendation.replaceFirst('{id}', comicId);
+    final response = await _api.get(url);
+    final data = response.data['data'];
+    final list = data['comics'] as List? ?? [];
+    return list
+        .map((json) => Comic.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
 }
 
 /// Provider

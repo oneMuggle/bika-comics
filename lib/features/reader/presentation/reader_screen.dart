@@ -210,10 +210,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                               : null,
                         ),
                         GestureDetector(
-                          onTap: () {
-                            _pageController.jumpToPage(
-                              _showPageDialog(context, pages.length),
-                            );
+                          onTap: () async {
+                            final target = await _showPageDialog(
+                                context, pages.length);
+                            if (target != null && target >= 0) {
+                              _pageController.jumpToPage(target);
+                            }
                           },
                           child: Container(
                             padding: const EdgeInsets.symmetric(
@@ -250,9 +252,62 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
-  int _showPageDialog(BuildContext context, int totalPages) {
-    // 简单的页码跳转
-    return _currentPage;
+  /// 显示页码跳转对话框
+  /// 返回目标页码（0-indexed），用户取消则返回 null
+  Future<int?> _showPageDialog(BuildContext context, int totalPages) async {
+    final controller = TextEditingController(
+      text: '${_currentPage + 1}',
+    );
+    return showDialog<int?>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          titleTextStyle: const TextStyle(color: Colors.white, fontSize: 18),
+          title: const Text('跳转到页码'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: '输入页码',
+              hintStyle: TextStyle(color: Colors.white54),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.white24),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.white),
+              ),
+            ),
+            onSubmitted: (val) {
+              final page = int.tryParse(val);
+              if (page != null && page >= 1 && page <= totalPages) {
+                Navigator.pop(ctx, page - 1);
+              }
+            },
+          ),
+          contentTextStyle: const TextStyle(color: Colors.white70),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, null),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final page = int.tryParse(controller.text);
+                if (page != null && page >= 1 && page <= totalPages) {
+                  Navigator.pop(ctx, page - 1);
+                } else {
+                  Navigator.pop(ctx, null);
+                }
+              },
+              child: Text('跳转 (1-$totalPages)'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showEpisodePicker(BuildContext context) {

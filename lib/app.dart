@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/storage/settings_storage.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/auth/presentation/login_screen.dart';
+import 'features/auth/presentation/profile_screen.dart';
 import 'features/auth/presentation/register_screen.dart';
 import 'features/comic/presentation/categories_screen.dart';
 import 'features/comic/presentation/comic_list_screen.dart';
@@ -85,6 +86,7 @@ class _PicacgAppState extends ConsumerState<PicacgApp> {
         '/home': (context) => const HomeScreen(),
         '/pica-share': (context) => const PicaShareResolverScreen(),
         '/speed-test': (context) => const SpeedTestScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }
@@ -184,6 +186,14 @@ class _MainShellState extends State<MainShell> {
               },
             ),
             const Divider(),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('个人中心'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/profile');
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.settings),
               title: const Text('设置'),

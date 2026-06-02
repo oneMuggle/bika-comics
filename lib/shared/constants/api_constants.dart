@@ -66,6 +66,19 @@ class ApiEndpoints {
 
   // 用户评论
   static const String userComments = '/users/profile/comments';
+  static const String myComments = '/users/my-comments';
+
+  // 搜索热词
+  static const String keywords = '/keywords';
+
+  // 漫画推荐 (related comics on detail page)
+  static const String comicRecommendation = '/comics/{id}/recommendation';
+
+  // 签到
+  static const String punchIn = '/users/punch-in';
+
+  // 用户资料
+  static const String userProfile = '/users/profile';
 
   // 游戏
   static const String games = '/games';
