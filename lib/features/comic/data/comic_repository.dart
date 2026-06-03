@@ -67,6 +67,53 @@ class ComicRepository {
     return comics;
   }
 
+  // ================== 搜索 ==================
+
+  /// 基础搜索 (GET /comics/search)
+  Future<List<Comic>> search({
+    required String q,
+    String? categories,
+    int page = 1,
+  }) async {
+    final response = await _api.get(
+      ApiEndpoints.comicsSearch,
+      queryParameters: {
+        'q': q,
+        if (categories != null && categories.isNotEmpty) 'c': categories,
+        'page': page,
+      },
+    );
+    final data = response.data['data'];
+    final docs = (data is Map ? data['comics'] : null) as List? ?? [];
+    return docs
+        .map((json) => Comic.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// 高级搜索 (POST /comics/advanced-search)
+  /// 支持关键词 + 多分类组合筛选
+  Future<List<Comic>> advancedSearch({
+    required String keyword,
+    List<String> categories = const [],
+    String sort = '',
+    int page = 1,
+  }) async {
+    final response = await _api.post(
+      ApiEndpoints.advancedSearch,
+      queryParameters: {'page': page},
+      data: {
+        'keyword': keyword,
+        'categories': categories,
+        'sort': sort,
+      },
+    );
+    final data = response.data['data'];
+    final docs = (data is Map ? data['comics'] : null) as List? ?? [];
+    return docs
+        .map((json) => Comic.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
   // ================== 评论系统 ==================
 
   /// 获取漫画评论

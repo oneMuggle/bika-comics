@@ -47,14 +47,18 @@ class ReaderScreen extends ConsumerStatefulWidget {
 class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   late int _currentEpisodeIndex;
   late PageController _pageController;
+  late ScrollController _verticalController;
   int _currentPage = 0;
   bool _showControls = true;
+  _ReaderMode _readerMode = _ReaderMode.single;
 
   @override
   void initState() {
     super.initState();
     _currentEpisodeIndex = widget.initialEpisodeIndex;
     _pageController = PageController();
+    _verticalController = ScrollController();
+    _verticalController.addListener(_onVerticalScroll);
 
     // 隐藏状态栏
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -62,10 +66,25 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   @override
   void dispose() {
+    _verticalController.removeListener(_onVerticalScroll);
     _pageController.dispose();
+    _verticalController.dispose();
     // 恢复状态栏
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
+  }
+
+  void _onVerticalScroll() {
+    // 同步页码到 _currentPage（粗略估计：page = scrollOffset / pageHeight）
+    if (!_verticalController.hasClients) return;
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final pageHeight = renderBox.size.height;
+    if (pageHeight <= 0) return;
+    final newPage = (_verticalController.offset / pageHeight).floor();
+    if (newPage != _currentPage) {
+      setState(() => _currentPage = newPage);
+    }
   }
 
   comic.Episode get currentEpisode => widget.episodes[_currentEpisodeIndex];
@@ -110,26 +129,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               onTap: () {
                 setState(() => _showControls = !_showControls);
               },
-              child: PhotoViewGallery.builder(
-                pageController: _pageController,
-                itemCount: pages.length,
-                builder: (context, index) {
-                  return PhotoViewGalleryPageOptions(
-                    imageProvider: CachedNetworkImageProvider(pages[index]),
-                    minScale: PhotoViewComputedScale.contained,
-                    maxScale: PhotoViewComputedScale.covered * 3,
-                    errorBuilder: (_, __, ___) => const Center(
-                      child: Icon(Icons.broken_image,
-                          color: Colors.white54, size: 64),
-                    ),
-                  );
-                },
-                onPageChanged: (index) {
-                  setState(() => _currentPage = index);
-                },
-                scrollPhysics: const BouncingScrollPhysics(),
-                backgroundDecoration: const BoxDecoration(color: Colors.black),
-              ),
+              child: _buildReaderView(pages),
             ),
           ),
 
@@ -164,6 +164,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   actions: [
+                    IconButton(
+                      icon: Icon(
+                        _readerMode == _ReaderMode.single
+                            ? Icons.swap_vert
+                            : Icons.swap_horiz,
+                      ),
+                      tooltip: _readerMode == _ReaderMode.single
+                          ? '切换到条状模式'
+                          : '切换到单页模式',
+                      onPressed: _toggleReaderMode,
+                    ),
                     IconButton(
                       icon: const Icon(Icons.list),
                       onPressed: () => _showEpisodePicker(context),
@@ -203,10 +214,29 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                           icon: const Icon(Icons.skip_previous,
                               color: Colors.white),
                           onPressed: _currentPage > 0
-                              ? () => _pageController.previousPage(
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeInOut,
-                                  )
+                              ? () {
+                                  if (_readerMode == _ReaderMode.single) {
+                                    _pageController.previousPage(
+                                      duration:
+                                          const Duration(milliseconds: 300),
+                                      curve: Curves.easeInOut,
+                                    );
+                                  } else {
+                                    final renderBox = context
+                                        .findRenderObject() as RenderBox?;
+                                    if (renderBox != null) {
+                                      final h = renderBox.size.height;
+                                      if (h > 0) {
+                                        _verticalController.animateTo(
+                                          (_currentPage - 1) * h,
+                                          duration:
+                                              const Duration(milliseconds: 300),
+                                          curve: Curves.easeInOut,
+                                        );
+                                      }
+                                    }
+                                  }
+                                }
                               : null,
                         ),
                         GestureDetector(
@@ -214,7 +244,18 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             final target = await _showPageDialog(
                                 context, pages.length);
                             if (target != null && target >= 0) {
-                              _pageController.jumpToPage(target);
+                              if (_readerMode == _ReaderMode.single) {
+                                _pageController.jumpToPage(target);
+                              } else {
+                                // 条状模式：按页码 × 屏幕高度滚动
+                                final renderBox = context.findRenderObject() as RenderBox?;
+                                if (renderBox != null) {
+                                  final h = renderBox.size.height;
+                                  if (h > 0) {
+                                    _verticalController.jumpTo(target * h);
+                                  }
+                                }
+                              }
                             }
                           },
                           child: Container(
@@ -233,10 +274,29 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         IconButton(
                           icon: const Icon(Icons.skip_next, color: Colors.white),
                           onPressed: _currentPage < pages.length - 1
-                              ? () => _pageController.nextPage(
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeInOut,
-                                  )
+                              ? () {
+                                  if (_readerMode == _ReaderMode.single) {
+                                    _pageController.nextPage(
+                                      duration:
+                                          const Duration(milliseconds: 300),
+                                      curve: Curves.easeInOut,
+                                    );
+                                  } else {
+                                    final renderBox = context
+                                        .findRenderObject() as RenderBox?;
+                                    if (renderBox != null) {
+                                      final h = renderBox.size.height;
+                                      if (h > 0) {
+                                        _verticalController.animateTo(
+                                          (_currentPage + 1) * h,
+                                          duration:
+                                              const Duration(milliseconds: 300),
+                                          curve: Curves.easeInOut,
+                                        );
+                                      }
+                                    }
+                                  }
+                                }
                               : null,
                         ),
                       ],
@@ -250,6 +310,54 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         ],
       ),
     );
+  }
+
+  /// 根据当前模式构建阅读视图
+  Widget _buildReaderView(List<String> pages) {
+    switch (_readerMode) {
+      case _ReaderMode.single:
+        return PhotoViewGallery.builder(
+          pageController: _pageController,
+          itemCount: pages.length,
+          builder: (context, index) {
+            return PhotoViewGalleryPageOptions(
+              imageProvider: CachedNetworkImageProvider(pages[index]),
+              minScale: PhotoViewComputedScale.contained,
+              maxScale: PhotoViewComputedScale.covered * 3,
+              errorBuilder: (_, __, ___) => const Center(
+                child: Icon(Icons.broken_image,
+                    color: Colors.white54, size: 64),
+              ),
+            );
+          },
+          onPageChanged: (index) {
+            setState(() => _currentPage = index);
+          },
+          scrollPhysics: const BouncingScrollPhysics(),
+          backgroundDecoration: const BoxDecoration(color: Colors.black),
+        );
+      case _ReaderMode.strip:
+        return ListView.builder(
+          controller: _verticalController,
+          itemCount: pages.length,
+          itemBuilder: (context, index) {
+            return PhotoView(
+              imageProvider: CachedNetworkImageProvider(pages[index]),
+              backgroundDecoration:
+                  const BoxDecoration(color: Colors.black),
+              minScale: PhotoViewComputedScale.contained,
+              maxScale: PhotoViewComputedScale.covered * 3,
+              errorBuilder: (_, __, ___) => const SizedBox(
+                height: 200,
+                child: Center(
+                  child: Icon(Icons.broken_image,
+                      color: Colors.white54, size: 64),
+                ),
+              ),
+            );
+          },
+        );
+    }
   }
 
   /// 显示页码跳转对话框
@@ -349,6 +457,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       if (index != _currentEpisodeIndex) {
                         setState(() => _currentEpisodeIndex = index);
                         _pageController.jumpToPage(0);
+                        if (_verticalController.hasClients) {
+                          _verticalController.jumpTo(0);
+                        }
                       }
                     },
                   );
@@ -360,4 +471,28 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       ),
     );
   }
+
+  /// 切换阅读模式
+  void _toggleReaderMode() {
+    setState(() {
+      _readerMode =
+          _readerMode == _ReaderMode.single ? _ReaderMode.strip : _ReaderMode.single;
+      // 重置页码
+      _currentPage = 0;
+    });
+    if (_readerMode == _ReaderMode.single) {
+      if (_verticalController.hasClients) {
+        _verticalController.jumpTo(0);
+      }
+    } else {
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(0);
+      }
+    }
+  }
 }
+
+/// 阅读器模式
+/// - single: 单页横滑（PhotoViewGallery）
+/// - strip:  条状/长条垂直滚动（PageView 内嵌 PhotoView，可缩放）
+enum _ReaderMode { single, strip }

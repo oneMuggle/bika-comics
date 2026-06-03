@@ -118,6 +118,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.filter_list),
+            tooltip: '高级搜索',
+            onPressed: () {
+              Navigator.of(context).pushNamed('/advanced-search');
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.search),
             onPressed: () => _search(_controller.text),
           ),

@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/storage/settings_storage.dart';
 import 'features/auth/data/auth_repository.dart';
+import 'features/auth/presentation/change_password_screen.dart';
+import 'features/auth/presentation/forgot_password_screen.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/profile_screen.dart';
 import 'features/auth/presentation/register_screen.dart';
+import 'features/comic/presentation/advanced_search_screen.dart';
 import 'features/comic/presentation/categories_screen.dart';
 import 'features/comic/presentation/comic_list_screen.dart';
 import 'features/comic/presentation/leaderboard_screen.dart';
@@ -87,6 +90,9 @@ class _PicacgAppState extends ConsumerState<PicacgApp> {
         '/pica-share': (context) => const PicaShareResolverScreen(),
         '/speed-test': (context) => const SpeedTestScreen(),
         '/profile': (context) => const ProfileScreen(),
+        '/change-password': (context) => const ChangePasswordScreen(),
+        '/forgot-password': (context) => const ForgotPasswordScreen(),
+        '/advanced-search': (context) => const AdvancedSearchScreen(),
       },
     );
   }
@@ -150,6 +156,14 @@ class _MainShellState extends State<MainShell> {
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/categories');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.filter_list),
+              title: const Text('高级搜索'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/advanced-search');
               },
             ),
             ListTile(

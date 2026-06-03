@@ -42,6 +42,9 @@ dependencies:
   share_plus: ^7.2.1
   url_launcher: ^6.2.3
 
+  # 图片选择（头像上传）
+  image_picker: ^1.0.7
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

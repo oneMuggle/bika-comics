@@ -1,6 +1,6 @@
 # 哔咔漫画 桌面端→移动端 迁移分析报告
 
-> 更新日期：2026-06-03
+> 更新日期：2026-06-04
 > 状态：核心 + 多个 P2 功能已迁移（详见下方 P2 进展）
 
 ---
@@ -60,11 +60,17 @@
 | 下载管理（壳） | ⚠️ | `features/download/presentation/download_screen.dart`（空壳，未实现下载逻辑） |
 | **个人中心** | ✅ | `features/auth/presentation/profile_screen.dart` (2026-06-03) |
 | **每日签到** | ✅ | `features/auth/data/auth_repository.dart#punchIn()` (2026-06-03) |
-| **我的评论** | ✅ | `features/auth/data/user_repository.dart` (2026-06-03) |
-| **搜索热词** | ✅ | `features/comic/data/comic_repository.dart#getKeywords()` (2026-06-03) |
-| **搜索历史 UI** | ✅ | `features/comic/presentation/search_screen.dart` (2026-06-03) |
-| **漫画相关推荐** | ✅ | `features/comic/data/comic_repository.dart#getComicRecommendation()` (2026-06-03) |
-| **阅读器页码跳转** | ✅ | `features/reader/presentation/reader_screen.dart` (2026-06-03 修复) |
+| 我的评论 | ✅ | `features/auth/data/user_repository.dart` (2026-06-03) |
+| 搜索热词 | ✅ | `features/comic/data/comic_repository.dart#getKeywords()` (2026-06-03) |
+| 搜索历史 UI | ✅ | `features/comic/presentation/search_screen.dart` (2026-06-03) |
+| 漫画相关推荐 | ✅ | `features/comic/data/comic_repository.dart#getComicRecommendation()` (2026-06-03) |
+| 阅读器页码跳转 | ✅ | `features/reader/presentation/reader_screen.dart` (2026-06-03 修复) |
+| **修改密码** | ✅ | `features/auth/presentation/change_password_screen.dart` (2026-06-04) |
+| **忘记密码** | ✅ | `features/auth/presentation/forgot_password_screen.dart` (2026-06-04) |
+| **修改头像** | ✅ | `features/auth/presentation/profile_screen.dart` (2026-06-04) |
+| **修改个人称号** | ✅ | `features/auth/presentation/profile_screen.dart` (2026-06-04) |
+| **高级搜索** | ✅ | `features/comic/presentation/advanced_search_screen.dart` (2026-06-04) |
+| **阅读器多模式** | ✅ | 单页/条状切换 (2026-06-04) |
 | API Client | ✅ | `core/api/api_client.dart` |
 | 数据库（Drift） | ✅ | `core/db/database.dart` |
 | 安全存储 | ✅ | `core/storage/secure_storage.dart` |
@@ -291,8 +297,37 @@ CI 配置：`.github/workflows/build.yml`
 
 `dart analyze`：0 errors，0 warnings（仅 97 个 info 级 lints，包含本次新增的 prefer_const_constructors 等性能提示）
 
+### 2026-06-04 本次新增迁移（P2 增强 - 第三批）
+
+本次新增 5 个功能 / 1 个增强：
+
+1. **修改密码** (`PUT /users/password`) — 个人中心"账号设置"入口，旧密码 + 新密码 + 确认密码，修改后自动退出登录
+2. **忘记密码** (`POST /auth/forgot-password` + `POST /auth/reset-password`) — 登录页"忘记密码"入口，三步式找回流程：输入邮箱 -> 服务器返回安全问题 -> 回答 + 设置新密码
+3. **修改头像** (`PUT /users/avatar`) — 个人中心"账号设置"入口，使用 `image_picker` 从相册/相机选择图片，转 base64 上传
+4. **修改个人称号** (`PUT /users/{id}/title`) — 个人中心"账号设置"入口，弹窗输入新称号
+5. **高级搜索** (`POST /comics/advanced-search`) — 抽屉入口 + 搜索页 AppBar 入口，支持关键词（可空）+ 多分类多选 + 5 种排序，结果以网格展示
+6. **阅读器多模式** — 新增条状/长图垂直滚动模式（`_ReaderMode.strip`），单页模式仍为横滑；AppBar 切换按钮（`swap_vert`/`swap_horiz`），支持两种模式下的页码跳转和上下页
+
+**新增文件（3 个）**
+- `lib/features/auth/presentation/change_password_screen.dart` — 修改密码页
+- `lib/features/auth/presentation/forgot_password_screen.dart` — 忘记密码页（多步表单）
+- `lib/features/comic/presentation/advanced_search_screen.dart` — 高级搜索页
+
+**修改文件（7 个）**
+- `lib/shared/constants/api_constants.dart` — 新增 5 个端点常量（`forgotPassword` / `resetPassword` / `changePassword` / `userAvatar` / `userTitle` / `advancedSearch`）
+- `lib/features/auth/data/auth_repository.dart` — `changePassword()` / `forgotPassword()` / `resetPassword()` / `updateAvatar()` / `updateTitle()`
+- `lib/features/comic/data/comic_repository.dart` — `search()` / `advancedSearch()`
+- `lib/features/auth/presentation/profile_screen.dart` — 账号设置区（修改头像/称号/密码）
+- `lib/features/reader/presentation/reader_screen.dart` — 阅读模式切换 + 切换逻辑
+- `lib/features/comic/presentation/search_screen.dart` — AppBar 高级搜索入口
+- `lib/features/auth/presentation/login_screen.dart` — "忘记密码"链接
+- `lib/app.dart` — 4 个新路由 + 抽屉"高级搜索"入口
+- `pubspec.yaml` — 新增 `image_picker: ^1.0.7`
+
+`dart analyze`：0 errors，0 warnings（仅 101 个 info 级 lints，全部为 `prefer_const_constructors` / `withOpacity` / `use_build_context_synchronously` 性能提示，与本次改动一致）
+
 下一步建议：
-1. 实现多页阅读模式（左右翻页/双页）
+1. 实现多页阅读模式（左右翻页/双页）— 现已支持单页/条状切换，可考虑再加横翻页
 2. 聊天室（WebSocket）
 3. 完善下载管理（已实现 Repository + UI 框架，缺并发任务调度）
 4. 好友 / 游戏 / 本地阅读（NAS）/ Waifu2x（可选）

@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../shared/constants/app_colors.dart';
 import '../data/auth_repository.dart';
@@ -139,6 +143,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: 8),
             _buildActionGrid(),
             const Divider(height: 32),
+            _buildSectionTitle('账号设置'),
+            _buildAccountSettings(),
+            const Divider(height: 32),
             _buildSectionTitle('我的评论'),
             _buildMyComments(),
             const SizedBox(height: 24),
@@ -264,6 +271,161 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  Widget _buildAccountSettings() {
+    return Column(
+      children: [
+        ListTile(
+          leading: const Icon(Icons.image_outlined),
+          title: const Text('修改头像'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _changeAvatar,
+        ),
+        ListTile(
+          leading: const Icon(Icons.badge_outlined),
+          title: const Text('修改个人称号'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _changeTitle,
+        ),
+        ListTile(
+          leading: const Icon(Icons.lock_outline),
+          title: const Text('修改密码'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () =>
+              Navigator.pushNamed(context, '/change-password'),
+        ),
+      ],
+    );
+  }
+
+  // 修改头像 - 从相册选择图片并上传
+  Future<void> _changeAvatar() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final picker = await _pickImage();
+      if (picker == null) return; // 用户取消
+
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('正在上传头像…')),
+      );
+      await ref
+          .read(authStateProvider.notifier)
+          .updateAvatar(imageBase64: picker.base64, picFormat: picker.format);
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('头像已更新'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('头像更新失败: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // 修改个人称号
+  Future<void> _changeTitle() async {
+    final current = ref.read(authStateProvider).user?.name ?? '';
+    final controller = TextEditingController(text: current);
+    final newTitle = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('修改个人称号'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 20,
+          decoration: const InputDecoration(
+            labelText: '个人称号',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (newTitle == null || newTitle.isEmpty) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(authStateProvider.notifier).updateTitle(newTitle);
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('个人称号已更新'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('更新失败: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 弹出底部菜单，让用户选择图片来源，然后返回图片的 base64 + 格式
+  /// 用户取消则返回 null
+  Future<_PickedImage?> _pickImage() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('从相册选择'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('拍照'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return null;
+
+    final picker = ImagePicker();
+    final file = await picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 80,
+    );
+    if (file == null) return null;
+
+    // 读取为 base64
+    final bytes = await File(file.path).readAsBytes();
+    final base64 = base64Encode(bytes);
+    final format = (file.name.toLowerCase().endsWith('.png')) ? 'png' : 'jpeg';
+    return _PickedImage(base64: base64, format: format);
+  }
+
   Widget _buildMyComments() {
     final async = ref.watch(myCommentsProvider(1));
     return async.when(
@@ -385,4 +547,12 @@ class _CommentTile extends StatelessWidget {
       onTap: null,
     );
   }
+}
+
+/// 选中的图片（base64 + 格式）
+class _PickedImage {
+  final String base64;
+  final String format;
+
+  const _PickedImage({required this.base64, required this.format});
 }

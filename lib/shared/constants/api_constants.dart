@@ -10,9 +10,12 @@ class ApiEndpoints {
   static const String login = '/auth/login';
   static const String register = '/auth/register';
   static const String logout = '/auth/logout';
+  static const String forgotPassword = '/auth/forgot-password';
+  static const String resetPassword = '/auth/reset-password';
+  static const String changePassword = '/users/password';
   static const String user = '/user';
-  static const String userAvatar = '/user/avatar';
-  static const String changePassword = '/auth/password';
+  static const String userAvatar = '/users/avatar';
+  static const String userTitle = '/users/{id}/title';
 
   // 漫画
   static const String comics = '/comics';
@@ -70,6 +73,9 @@ class ApiEndpoints {
 
   // 搜索热词
   static const String keywords = '/keywords';
+
+  // 高级搜索（多条件）— POST /comics/advanced-search
+  static const String advancedSearch = '/comics/advanced-search';
 
   // 漫画推荐 (related comics on detail page)
   static const String comicRecommendation = '/comics/{id}/recommendation';

@@ -236,4 +236,90 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // 拉取失败保留旧值
     }
   }
+
+  // ================== 密码管理 ==================
+
+  /// 修改密码 (PUT /users/password)
+  /// 需要用户当前登录 token + 旧密码 + 新密码
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    await _api.put(
+      ApiEndpoints.changePassword,
+      data: {
+        'old_password': oldPassword,
+        'new_password': newPassword,
+      },
+    );
+  }
+
+  /// 忘记密码：发送重置请求 (POST /auth/forgot-password)
+  /// 返回安全问题的列表 [{questionNo, question}],用户需选择并回答其中一道
+  Future<List<Map<String, dynamic>>> forgotPassword(String email) async {
+    final response = await _api.post(
+      ApiEndpoints.forgotPassword,
+      data: {'email': email},
+    );
+    final data = response.data['data'];
+    final questions = (data is Map ? data['questions'] : null) as List? ?? [];
+    return questions
+        .map((q) => Map<String, dynamic>.from(q as Map))
+        .toList();
+  }
+
+  /// 重置密码 (POST /auth/reset-password)
+  /// 使用 email + questionNo + answer 重置
+  Future<void> resetPassword({
+    required String email,
+    required int questionNo,
+    required String answer,
+    required String newPassword,
+  }) async {
+    await _api.post(
+      ApiEndpoints.resetPassword,
+      data: {
+        'email': email,
+        'questionNo': questionNo,
+        'answer': answer,
+        'new_password': newPassword,
+      },
+    );
+  }
+
+  // ================== 用户资料编辑 ==================
+
+  /// 上传头像 (PUT /users/avatar)
+  /// imageData 是图片的 base64 字符串（不含 data:image/...;base64, 前缀）
+  /// picFormat: 'jpeg' 或 'png'
+  Future<void> updateAvatar({
+    required String imageBase64,
+    String picFormat = 'jpeg',
+  }) async {
+    final dataUri =
+        'data:image/$picFormat;base64,${imageBase64.replaceAll(RegExp(r'^data:image/[^;]+;base64,'), '')}';
+    await _api.put(
+      ApiEndpoints.userAvatar,
+      data: {'avatar': dataUri},
+    );
+    // 刷新本地缓存
+    if (state.user != null) {
+      state = state.copyWith(
+        user: state.user!.copyWith(avatar: dataUri),
+      );
+    }
+  }
+
+  /// 设置个人称号 (PUT /users/{id}/title)
+  /// 注: pica 服务器用 `name` 字段表示个人称号（与用户名同名）
+  Future<void> updateTitle(String title) async {
+    final userId = state.user?.id;
+    if (userId == null || userId.isEmpty) {
+      throw StateError('用户未登录');
+    }
+    final url = ApiEndpoints.userTitle.replaceFirst('{id}', userId);
+    await _api.put(url, data: {'title': title});
+    // 拉取最新资料以同步服务器端数据
+    await refreshProfile();
+  }
 }
