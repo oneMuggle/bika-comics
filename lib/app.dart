@@ -17,6 +17,7 @@ import 'features/comic/presentation/my_follows_screen.dart';
 import 'features/comic/presentation/pica_share_resolver_screen.dart';
 import 'features/comic/presentation/search_screen.dart';
 import 'features/download/presentation/download_screen.dart';
+import 'features/game/presentation/game_list_screen.dart';
 import 'features/history/presentation/history_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/settings/presentation/settings_screen.dart';
@@ -93,6 +94,7 @@ class _PicacgAppState extends ConsumerState<PicacgApp> {
         '/change-password': (context) => const ChangePasswordScreen(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/advanced-search': (context) => const AdvancedSearchScreen(),
+        '/games': (context) => const GameListScreen(),
       },
     );
   }
@@ -180,6 +182,14 @@ class _MainShellState extends State<MainShell> {
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/pica-share');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.videogame_asset),
+              title: const Text('游戏区'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/games');
               },
             ),
             const Divider(),
