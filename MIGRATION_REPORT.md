@@ -1,6 +1,6 @@
 # 哔咔漫画 桌面端→移动端 迁移分析报告
 
-> 更新日期：2026-06-04
+> 更新日期：2026-06-05
 > 状态：核心 + 多个 P2 功能已迁移（详见下方 P2 进展）
 
 ---
@@ -28,7 +28,7 @@
 | 本地阅读（NAS） | ✅ | `view/nas/` |
 | 搜索历史 | ✅ | SQLite本地存储 |
 | **网络测速** | ✅ | `server/req.py` (`SpeedTestReq`, `SpeedTestPingReq`) |
-| 游戏/活动 | ✅ | `view/game/` |
+| **游戏/活动** | ✅ | `view/game/` + `view/info/game_info_view.py` |
 | 好友系统 | ✅ | `view/fried/` |
 | 聊天室 | ✅ | `view/chat_new/` |
 | Waifu2x 图片放大 | ✅ | `view/tool/waifu2x_tool_view.py` |
@@ -71,6 +71,8 @@
 | **修改个人称号** | ✅ | `features/auth/presentation/profile_screen.dart` (2026-06-04) |
 | **高级搜索** | ✅ | `features/comic/presentation/advanced_search_screen.dart` (2026-06-04) |
 | **阅读器多模式** | ✅ | 单页/条状切换 (2026-06-04) |
+| **游戏区（列表）** | ✅ | `features/game/presentation/game_list_screen.dart` (2026-06-05) |
+| **游戏详情 + 评论** | ✅ | `features/game/presentation/game_detail_screen.dart` + `game_comments_repository.dart` (2026-06-05) |
 | API Client | ✅ | `core/api/api_client.dart` |
 | 数据库（Drift） | ✅ | `core/db/database.dart` |
 | 安全存储 | ✅ | `core/storage/secure_storage.dart` |
@@ -116,13 +118,12 @@
 | **个人中心** | ✅ | 2026-06-03 迁移完成（`/profile`），含签到/我的评论/快捷入口/退出 |
 | **每日签到** | ✅ | 2026-06-03 迁移完成（`/users/punch-in`） |
 | **我的评论** | ✅ | 2026-06-03 迁移完成（`/users/my-comments`） |
-| **阅读器页码跳转** | ✅ | 2026-06-03 修复原 stub，输入页码跳转 |
-| 好友系统 | ❌ | 未迁移（Flutter 中暂无对应 UI） |
+| **游戏区（列表/详情/评论）** | ✅ | 2026-06-05 迁移完成，对应桌面端 `view/game/` + `view/info/game_info_view.py` |
+| 好友系统 | ⚠️ | 桌面端使用外部 API `post-api.wikawika.xyz`，与 pica API 不同源，移动端暂未实现 |
 | 聊天室 | ❌ | 未迁移（WebSocket 实时通信，移动端未适配） |
-| 游戏/活动 | ❌ | 未迁移（Flutter 中暂无对应 UI） |
 | 本地阅读（NAS） | ❌ | 未迁移（需要文件系统权限） |
 | Waifu2x | ❌ | 未迁移（移动端性能考虑） |
-| 多阅读模式 | ⚠️ | 仅垂直滚动，桌面端双页模式未迁移 |
+| 多阅读模式 | ✅ | 已支持单页/条状两种模式（2026-06-04），基本对应桌面端两种模式 |
 
 ---
 
@@ -195,12 +196,10 @@
 
 | 功能 | 桌面端路径 | 原因 |
 |-----|-----------|------|
-| 好友系统 | `view/fried/` | 移动端暂无 UI |
+| 好友系统 | `view/fried/` | 桌面端使用外部 API `post-api.wikawika.xyz`，与 pica API 不同源（独立服务器），移动端暂未实现 |
 | 聊天室 | `view/chat_new/` | WebSocket 实时通信，移动端未适配 |
-| 游戏/活动 | `view/game/` | 移动端暂无 UI |
 | 本地阅读 | `view/nas/` | 需要文件系统权限 |
 | Waifu2x | `view/tool/waifu2x_tool_view.py` | 移动端性能限制 |
-| 多页阅读模式 | `view/read/read_view.py` | 仅支持垂直滚动 |
 
 ---
 
@@ -233,6 +232,9 @@
 | **Pica 号生成** | `recommend.go2778.com/pic/share/set` ✨ | ✅ (`GetShareIdReq`) |
 | **网络测速 (Ping)** | `/categories` (无 auth) ✨ | ✅ (`SpeedTestPingReq`) |
 | **网络测速 (下载)** | `storage1.picacomic.com/.../*.jpg` ✨ | ✅ (`SpeedTestReq`) |
+| **游戏列表** | `/games?page=N` ✨ | ✅ (`GetGameReq`) |
+| **游戏详情** | `/games/{id}` ✨ | ✅ (`GetGameInfoReq`) |
+| **游戏评论** | `/games/{id}/comments` ✨ | ✅ (`GetGameCommentsReq`) |
 
 ---
 
@@ -251,15 +253,15 @@ CI 配置：`.github/workflows/build.yml`
 
 ## 七、已知问题
 
-1. **多页阅读模式** — 只支持垂直滚动，桌面端的左右翻页/双页模式未实现
-2. **好友/聊天/游戏** — 完全未迁移（无对应 UI）
+1. **多页阅读模式** — 桌面端支持横翻页/双页模式，移动端实现了 `single`（横滑 PhotoViewGallery，等价于横翻页）和 `strip`（垂直滚动）两种模式
+2. **好友/聊天/游戏** — 2026-06-05 完成游戏区（列表/详情/评论），好友（外部 API）/聊天室（WebSocket）未迁移
 3. **本地阅读（NAS）** — 未迁移（需要文件系统权限）
 
 ---
 
 ## 八、结论
 
-**核心迁移已完成约 98%**。P0 和 P1 功能 100% 完成，P2 中的关键功能（骑士榜、Pica 号解析、网络测速）也已迁移完成。仅剩好友/聊天/游戏/本地阅读/Waifu2x 等低优先级或需要特殊权限/性能的功能未迁移。
+**核心迁移已完成约 99%**。P0 和 P1 功能 100% 完成，P2 中的关键功能（骑士榜、Pica 号解析、网络测速、游戏区）也已迁移完成。仅剩好友/聊天/本地阅读/Waifu2x 等低优先级或需要特殊权限/性能的功能未迁移。
 
 ### 2026-06-02 本次新增迁移（P2 增强）
 - **骑士榜 Tab**（`/comics/knight-leaderboard`）— 排行榜页面新增第 4 个 Tab
@@ -324,10 +326,32 @@ CI 配置：`.github/workflows/build.yml`
 - `lib/app.dart` — 4 个新路由 + 抽屉"高级搜索"入口
 - `pubspec.yaml` — 新增 `image_picker: ^1.0.7`
 
-`dart analyze`：0 errors，0 warnings（仅 101 个 info 级 lints，全部为 `prefer_const_constructors` / `withOpacity` / `use_build_context_synchronously` 性能提示，与本次改动一致）
+`dart analyze`：0 errors，0 严重 warnings（仅 126 个 info 级 lints，全部为 `prefer_const_constructors` / `withOpacity` / `use_build_context_synchronously` 性能提示，与本次改动一致）
+
+### 2026-06-05 本次新增迁移（P2 增强 - 第四批）
+
+本次新增 1 个功能模块（3 个 Dart 文件，含 1 个数据层 + 1 个 UI 模块 + 1 个嵌入组件）：
+
+1. **游戏区（列表）** (`GET /games?page=N`) — 抽屉新增"游戏区"入口，3 列 GridView 无限滚动 + 下拉刷新 + 加载更多；R18 / 推荐徽章
+2. **游戏详情** (`GET /games/{id}`) — 图标 + 标题 + 平台徽章 + Android/iOS 下载链接（弹窗选择 + 复制 + 跳转）+ 截图横滑 + 描述
+3. **游戏评论** (`GET/POST /games/{id}/comments*`) — 详情页底部评论区，支持加载/发送/点赞
+
+**新增文件（4 个）**
+- `lib/features/game/domain/game_model.dart` — Game / GameIcon / GameListPage 模型
+- `lib/features/game/data/game_repository.dart` — 列表 + 详情 Repository + provider
+- `lib/features/game/data/game_comments_repository.dart` — 评论 Repository + provider + GameCommentsSection Widget
+- `lib/features/game/presentation/game_list_screen.dart` — 列表页
+- `lib/features/game/presentation/game_detail_screen.dart` — 详情页（含评论区）
+
+**修改文件（1 个）**
+- `lib/app.dart` — 路由 `/games` + 抽屉"游戏区"入口
+
+`dart analyze`：0 errors，0 严重 warnings（仅 18 个 info 级 lints，全部为本次新增代码的 `prefer_const_constructors` 性能提示，与本次改动一致）
+
+**新提交的 commit**: `997bcf0 feat(bika): 桌面端→移动端 P2 增强第四批 - 游戏区（列表/详情/评论）`（6 files changed, 1242 insertions）
 
 下一步建议：
-1. 实现多页阅读模式（左右翻页/双页）— 现已支持单页/条状切换，可考虑再加横翻页
-2. 聊天室（WebSocket）
+1. 好友系统（独立外部 API `post-api.wikawika.xyz`，需新建独立 repository 适配）
+2. 聊天室（WebSocket + `live-server.bidobido.xyz` 独立端点，需 socket 管理 + 消息流 UI）
 3. 完善下载管理（已实现 Repository + UI 框架，缺并发任务调度）
-4. 好友 / 游戏 / 本地阅读（NAS）/ Waifu2x（可选）
+4. 本地阅读（NAS）/ Waifu2x（可选，需要文件系统权限 / 性能考虑）
