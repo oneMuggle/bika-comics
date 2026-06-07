@@ -197,6 +197,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             },
           ),
 
+          const Divider(),
+
+          // 搜索
+          _SectionHeader(title: '搜索'),
+          ListTile(
+            leading: const Icon(Icons.block),
+            title: const Text('搜索屏蔽词'),
+            subtitle: const Text('配置不想看到的标题 / 分类 / Tag'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).pushNamed('/forbid-words');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.find_in_page),
+            title: const Text('批量搜索工具'),
+            subtitle: const Text('对一组关键词逐一搜索并保存结果'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).pushNamed('/batch-search');
+            },
+          ),
+
           // 关于
           _SectionHeader(title: AppStrings.about),
           const ListTile(

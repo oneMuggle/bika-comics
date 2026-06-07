@@ -9,17 +9,23 @@ import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/profile_screen.dart';
 import 'features/auth/presentation/register_screen.dart';
 import 'features/comic/presentation/advanced_search_screen.dart';
+import 'features/comic/presentation/batch_search_screen.dart';
 import 'features/comic/presentation/categories_screen.dart';
 import 'features/comic/presentation/comic_list_screen.dart';
+import 'features/comic/presentation/forbid_words_screen.dart';
 import 'features/comic/presentation/leaderboard_screen.dart';
 import 'features/comic/presentation/my_favourites_screen.dart';
 import 'features/comic/presentation/my_follows_screen.dart';
 import 'features/comic/presentation/pica_share_resolver_screen.dart';
 import 'features/comic/presentation/search_screen.dart';
 import 'features/download/presentation/download_screen.dart';
+import 'features/friend/presentation/friend_post_detail_screen.dart';
+import 'features/friend/presentation/friend_posts_screen.dart';
 import 'features/game/presentation/game_list_screen.dart';
 import 'features/history/presentation/history_screen.dart';
 import 'features/home/presentation/home_screen.dart';
+import 'features/chat/presentation/chat_room_screen.dart';
+import 'features/chat/presentation/chat_rooms_screen.dart';
 import 'features/settings/presentation/settings_screen.dart';
 import 'features/settings/presentation/speed_test_screen.dart';
 import 'shared/constants/app_colors.dart';
@@ -95,6 +101,22 @@ class _PicacgAppState extends ConsumerState<PicacgApp> {
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/advanced-search': (context) => const AdvancedSearchScreen(),
         '/games': (context) => const GameListScreen(),
+        '/forbid-words': (context) => const ForbidWordsScreen(),
+        '/batch-search': (context) => const BatchSearchScreen(),
+        '/friend-posts': (context) => const FriendPostsScreen(),
+        '/friend-post-detail': (context) {
+          final postId = ModalRoute.of(context)?.settings.arguments as String?;
+          return FriendPostDetailScreen(postId: postId ?? '');
+        },
+        '/chat-rooms': (context) => const ChatRoomsScreen(),
+        '/chat-room': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments
+              as Map<String, String>?;
+          return ChatRoomScreen(
+            roomId: args?['roomId'] ?? '',
+            roomName: args?['roomName'] ?? '聊天室',
+          );
+        },
       },
     );
   }
@@ -190,6 +212,22 @@ class _MainShellState extends State<MainShell> {
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/games');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.forum),
+              title: const Text('好友动态'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/friend-posts');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.chat_bubble),
+              title: const Text('聊天室'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/chat-rooms');
               },
             ),
             const Divider(),

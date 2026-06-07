@@ -14,6 +14,11 @@ const _keyReaderDirection = 'reader_direction';
 const _keyImageQuality = 'image_quality';
 const _keyAutoNextEpisode = 'auto_next_episode';
 const _keyDownloadPath = 'download_path';
+const _keyForbidWords = 'forbid_words';
+const _keyForbidTitle = 'forbid_title';
+const _keyForbidTag = 'forbid_tag';
+const _keyForbidCategory = 'forbid_category';
+const _keyChatSendAction = 'chat_send_action';
 
 /// 设置存储（非敏感设置）
 class SettingsStorage {
@@ -127,6 +132,63 @@ class SettingsStorage {
 
   Future<void> setDownloadPath(String path) =>
       _storage.write(key: _keyDownloadPath, value: path);
+
+  // ================== 搜索屏蔽词 (P2 - 2026-06-06) ==================
+
+  /// 屏蔽词列表（JSON 编码的字符串数组）
+  /// 对应桌面端 Setting.ForbidWords / Setting.AddForbidWords
+  Future<List<String>> getForbidWords() async {
+    final json = await _storage.read(key: _keyForbidWords);
+    if (json == null || json.isEmpty) return <String>[];
+    try {
+      final list = jsonDecode(json) as List;
+      return list.map((e) => e.toString()).toList();
+    } catch (_) {
+      return <String>[];
+    }
+  }
+
+  Future<void> setForbidWords(List<String> words) =>
+      _storage.write(key: _keyForbidWords, value: jsonEncode(words));
+
+  /// 是否按标题屏蔽
+  Future<bool> getIsForbidTitle() async {
+    final v = await _storage.read(key: _keyForbidTitle);
+    return v == 'true';
+  }
+
+  Future<void> setIsForbidTitle(bool value) =>
+      _storage.write(key: _keyForbidTitle, value: value.toString());
+
+  /// 是否按 Tag 屏蔽
+  Future<bool> getIsForbidTag() async {
+    final v = await _storage.read(key: _keyForbidTag);
+    return v == 'true';
+  }
+
+  Future<void> setIsForbidTag(bool value) =>
+      _storage.write(key: _keyForbidTag, value: value.toString());
+
+  /// 是否按分类屏蔽
+  Future<bool> getIsForbidCategory() async {
+    final v = await _storage.read(key: _keyForbidCategory);
+    return v == 'true';
+  }
+
+  Future<void> setIsForbidCategory(bool value) =>
+      _storage.write(key: _keyForbidCategory, value: value.toString());
+
+  // ================== 聊天室 (P2 - 2026-06-06) ==================
+
+  /// 发送方式：0=Ctrl+Enter 发送，1=Enter 发送
+  /// 对应桌面端 Setting.ChatSendAction
+  Future<int> getChatSendAction() async {
+    final v = await _storage.read(key: _keyChatSendAction);
+    return int.tryParse(v ?? '0') ?? 0;
+  }
+
+  Future<void> setChatSendAction(int action) =>
+      _storage.write(key: _keyChatSendAction, value: action.toString());
 
   // ================== Helpers ==================
 
