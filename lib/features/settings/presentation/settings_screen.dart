@@ -168,7 +168,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           const Divider(),
 
-          // 缓存
+          // 存储
           _SectionHeader(title: '存储'),
           ListTile(
             leading: const Icon(Icons.delete_sweep),
@@ -181,6 +181,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const SnackBar(content: Text(AppStrings.cacheCleared)),
                 );
               }
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.storage),
+            title: const Text('本地阅读（NAS）'),
+            subtitle: const Text('浏览应用沙箱 / 准备接入 SFTP / WebDAV'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).pushNamed('/nas-local');
             },
           ),
 

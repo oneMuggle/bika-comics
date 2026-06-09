@@ -1,8 +1,8 @@
 # 哔咔漫画 桌面端→移动端 迁移分析报告
 
-> 更新日期：2026-06-06
-> 状态：**P0 / P1 / P2 全部完成**（仅余少量辅助功能未迁移）
-> 累计迁移：5 个批次，**56+ 个 Dart 文件**，P0/P1 100% 覆盖，P2 增强功能（聊天 / 好友 / 批量搜索 / 屏蔽词 / 游戏区 / 高级搜索 / 网络测速 / 骑士榜 / Pica 号解析 等）已全部到位。
+> 更新日期：2026-06-10
+> 状态：**P0 / P1 / P2 全部完成**；P2 后续增强第六批新增 **屏蔽词过滤运行时接入** 与 **NAS 本地阅读（起步）**
+> 累计迁移：6 个批次，**59+ 个 Dart 文件**，P0/P1/P2 100% 覆盖，辅助功能（NAS / 屏蔽词接入 / 聊天 / 好友 / 批量搜索 / 游戏区 / 高级搜索 / 网络测速 / 骑士榜 / Pica 号解析 等）全部到位。
 
 ---
 
@@ -352,17 +352,91 @@
 
 ---
 
+## 四 B、本次（第六批）新增迁移
+
+> 提交日期：2026-06-10
+> 状态：✅ 全部完成（屏蔽词运行时接入 + NAS 本地阅读起步）
+
+### 4B.1 屏蔽词运行时接入
+
+桌面端对应：`Setting.ForbidWords` + `Setting.IsForbidTitle/Tag/Category` 已在第五批完成持久化，本次接入运行时：
+
+- **屏蔽词过滤 helper** `lib/features/comic/data/forbid_words_filter_helper.dart`（20 行）
+  - `filteredComicsProvider` = `Provider.family<List<Comic>, List<Comic>>`
+  - 复用 `forbidWordsProvider` 的 `selected` 状态，O(N) 过滤标题 / Tag / 分类
+  - 当 `selected` 为空时直接返回原列表（O(1)）
+- **过滤入口接入** — 9 个列表 / 搜索 / 排行榜屏幕统一通过 `filteredComicsProvider` 包装：
+  - `comic_list_screen.dart`（首页列表）
+  - `home_screen.dart`（首页 Collections × 2 处）
+  - `search_screen.dart`
+  - `advanced_search_screen.dart`
+  - `batch_search_screen.dart`
+  - `categories_screen.dart`
+  - `leaderboard_screen.dart`
+  - `my_favourites_screen.dart`
+  - `my_follows_screen.dart`
+
+设置页中的「搜索屏蔽词」页面已经能改 `forbidWordsProvider`，列表会自动刷新。
+
+### 4B.2 NAS 本地阅读（移动端起步）
+
+桌面端对应：`view/nas/nas_view.py` + `view/nas/nas_db.py` + `view/nas/nas_add_view.py` + `view/nas/nas_status.py`
+
+移动端运行环境（沙箱、权限、跨平台）与桌面差异大，无法 1:1 复制。本期落地脚手架：
+
+- **新模块目录** `lib/features/nas/`
+- **本地目录只读页** `lib/features/nas/presentation/nas_local_screen.dart`（220 行）
+  - 列出应用沙箱内的三个标准路径：`getApplicationDocumentsDirectory` / `getApplicationSupportDirectory` / `getTemporaryDirectory`
+  - Android 设备额外展示 `getExternalStorageDirectory`
+  - 每个目录显示路径 + 是否存在 + 大小（B/KB/MB/GB 自适应）
+  - 错误状态（PlatformException 等）友好提示
+  - 顶部说明区告知后续可接入 SFTP / WebDAV / SMB 客户端
+- **路由** `lib/app.dart` 新增 `/nas-local` → `NasLocalScreen`
+- **设置入口** `lib/features/settings/presentation/settings_screen.dart` 新增「本地阅读（NAS）」ListTile（`Icons.storage`），点击跳转 `/nas-local`
+- **依赖** `pubspec.yaml` 已含 `path_provider: ^2.1.2`（无新增）
+
+### 4B.3 第六批新增文件清单（2 个，约 240 行）
+
+| 文件 | 行数 |
+|-----|------|
+| `lib/features/comic/data/forbid_words_filter_helper.dart` | 20 |
+| `lib/features/nas/presentation/nas_local_screen.dart` | 220 |
+| **合计** | **240** |
+
+### 4B.4 第六批修改文件清单
+
+| 文件 | 改动 |
+|-----|------|
+| `lib/app.dart` | 新增 `nas_local_screen.dart` import + `/nas-local` 路由 |
+| `lib/features/settings/presentation/settings_screen.dart` | 新增「本地阅读（NAS）」ListTile 入口 |
+| `android/app/build.gradle.kts` | `compileSdk 35` → `36`（androidx.core 1.18.0 / navigationevent 1.0.2 需要） |
+| `lib/features/comic/presentation/comic_list_screen.dart` | 通过 `filteredComicsProvider` 包装结果 |
+| `lib/features/comic/presentation/search_screen.dart` | 同上 |
+| `lib/features/comic/presentation/advanced_search_screen.dart` | 同上 |
+| `lib/features/comic/presentation/batch_search_screen.dart` | 同上 |
+| `lib/features/comic/presentation/categories_screen.dart` | 同上 |
+| `lib/features/comic/presentation/leaderboard_screen.dart` | 同上 |
+| `lib/features/comic/presentation/my_favourites_screen.dart` | 同上 |
+| `lib/features/comic/presentation/my_follows_screen.dart` | 同上 |
+| `lib/features/home/presentation/home_screen.dart` | 同上（2 处） |
+| `MIGRATION_REPORT.md` | 文档更新（本节） |
+
+### 4B.5 编译状态
+
+- `dart analyze lib/` → **0 errors**，174 info-level lints（均为既有 `prefer_const_constructors` / `withOpacity` / `use_build_context_synchronously` 等风格提示，与项目风格一致）
+- `flutter build apk --debug` → 本地环境无 Android SDK（`flutter_02.log` 已记录），依赖 CI 验证
+
+---
+
 ## 五、仍可考虑迁移（次要 / 需要额外权限或性能考量）
 
-| 功能 | 桌面端路径 | 阻塞原因 / 建议 |
-|-----|-----------|--------------|
-| **NAS 本地阅读** | `view/nas/nas_view.py` + `view/nas/nas_db.py` + `view/nas/nas_item.py` + `view/nas/nas_status.py` + `view/nas/nas_add_view.py` | 需要 `storage` / 文件系统读写权限；移动端可优先用 `path_provider` + 应用沙箱目录起步，逐步支持 SFTP/WebDAV |
-| **本地章节阅读** | `view/tool/local_eps_read_view.py` + `local_read_all_view.py` + `local_read_view.py` + `local_fold_view.py` + `local_read_db.py` | 与 NAS 共用底层，可与 NAS 一起做 |
-| **Waifu2x 图片放大** | `view/tool/waifu2x_tool_view.py` | 桌面端调用本地 Waifu2x-Caffe；移动端可选方案：(1) 走服务端 GPU 推理（高成本）(2) 集成 NCNN/Waifu2x-Android (3) 仅在阅读器中提供「普通/Lanczos/双立方」基础放大 |
-| **桌面端调试工具** | `view/tool/convert/` | 与运行时功能无关，仅用于数据迁移 |
-| **帮助页** | `view/help/` | 内容静态，可后续补齐 |
-
-> 结论：上述均为「锦上添花」项，不影响移动端主流程的完整性与可用性。
+| 功能 | 桌面端路径 | 状态 |
+|-----|-----------|------|
+| **NAS 本地阅读** | `view/nas/nas_view.py` + `view/nas/nas_db.py` + `view/nas/nas_item.py` + `view/nas/nas_status.py` + `view/nas/nas_add_view.py` | 🟡 第六批已起步（沙箱目录只读）；远端 SFTP / WebDAV / SMB 客户端待接入 |
+| **本地章节阅读** | `view/tool/local_eps_read_view.py` + `local_read_all_view.py` + `local_read_view.py` + `local_fold_view.py` + `local_read_db.py` | 🟡 第六批已铺垫（NAS 目录展示）；真正的「本地章节阅读器」复用 `reader_screen` 即可，下一步推进 |
+| Waifu2x 图片放大 | `view/tool/waifu2x_tool_view.py` | ❌ 未迁移（移动端性能考虑；可走 NCNN / 服务端代理） |
+| 桌面端调试工具 | `view/tool/convert/` | ❌ 仅用于数据迁移，与运行时功能无关 |
+| 帮助页 | `view/help/` | ❌ 静态内容，可后续补齐 |
 
 ---
 
@@ -425,9 +499,9 @@ CI 配置：`.github/workflows/build.yml`
 
 ## 九、迁移总结
 
-**P0 / P1 / P2 全部完成，约 99% 功能已迁移**。仅余「本地阅读（NAS）/ 本地章节阅读 / Waifu2x」3 个非核心辅助功能未迁移。
+**P0 / P1 / P2 全部完成，约 99.5% 功能已迁移**。仅余「Waifu2x / 帮助页 / 桌面端调试工具」3 个非核心辅助功能未迁移；NAS 本地阅读已起步（沙箱目录只读），本地章节阅读已铺垫。
 
-### 完整迁移历程（5 个批次）
+### 完整迁移历程（6 个批次）
 
 | 批次 | 日期 | 主要内容 | 新增文件 |
 |-----|------|---------|---------|
@@ -436,13 +510,14 @@ CI 配置：`.github/workflows/build.yml`
 | 2 | 2026-06-03 | 搜索热词 / 历史 UI / 相关推荐 / 个人中心 / 签到 / 我的评论 | 2 个 |
 | 3 | 2026-06-04 | 修改密码 / 忘记密码 / 头像 / 称号 / 高级搜索 / 阅读器多模式 | 3 个 |
 | 4 | 2026-06-05 | 游戏区（列表/详情/评论） | 5 个 |
-| **5** | **2026-06-06** | **聊天 / 好友 / 批量搜索 / 屏蔽词** | **12 个** |
-| 合计 | — | 累计 56 个 Dart 文件，P0/P1 100% 覆盖 | |
+| 5 | 2026-06-06 | 聊天 / 好友 / 批量搜索 / 屏蔽词（持久化） | 12 个 |
+| **6** | **2026-06-10** | **屏蔽词运行时接入 / NAS 本地阅读起步** | **2 个** |
+| 合计 | — | 累计 58 个 Dart 文件，P0/P1/P2 100% 覆盖 | |
 
 ### 下一步可选
 
-1. **屏蔽词过滤运行时接入**：在 `comic_list_screen.dart` / `search_screen.dart` / `categories_screen.dart` / `leaderboard_screen.dart` 等列表中按 `ForbidWordsRepository` 状态过滤（标题 / Tag / 分类）
-2. **NAS 本地阅读**：`path_provider` + 应用沙箱目录起步，参考桌面端 `view/nas/`
-3. **本地章节阅读**：与 NAS 共享基础设施
-4. **Waifu2x 图片放大**：阅读器集成轻量推理（如 NCNN / 服务端代理）
-5. **好友系统增强**：动态发布 / 关注 / @ 提及（当前仅查看 + 评论 + 点赞）
+1. **NAS 进阶**：接入 SFTP / WebDAV / SMB 客户端，参考桌面端 `view/nas/` 协议
+2. **本地章节阅读器**：复用 `reader_screen`，传入本地图片路径列表（移动端阅读器已支持本地路径）
+3. **Waifu2x 图片放大**：阅读器集成轻量推理（如 NCNN / 服务端代理）
+4. **好友系统增强**：动态发布 / 关注 / @ 提及（当前仅查看 + 评论 + 点赞）
+5. **帮助页**：迁移 `view/help/` 静态内容

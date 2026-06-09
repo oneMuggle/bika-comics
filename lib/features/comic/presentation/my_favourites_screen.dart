@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/api/api_client.dart';
-import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../../../shared/widgets/comic_card.dart';
 import '../data/comic_repository.dart';
+import '../data/forbid_words_filter_helper.dart';
 import '../domain/comic_model.dart';
 import 'comic_detail_screen.dart';
 
@@ -22,6 +21,11 @@ class MyFavouritesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncFavourites = ref.watch(myFavouritesProvider);
+    // 屏蔽词过滤（设置中开关后会自动重算）
+    final filteredFavourites = ref.watch(
+      filteredComicsProvider(asyncFavourites.valueOrNull ?? const <Comic>[]),
+    );
+    final displayList = filteredFavourites;
 
     return Scaffold(
       appBar: AppBar(
@@ -51,7 +55,8 @@ class MyFavouritesScreen extends ConsumerWidget {
           ),
         ),
         data: (comics) {
-          if (comics.isEmpty) {
+          final list = displayList;
+          if (list.isEmpty) {
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -75,9 +80,9 @@ class MyFavouritesScreen extends ConsumerWidget {
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
               ),
-              itemCount: comics.length,
+              itemCount: list.length,
               itemBuilder: (context, index) {
-                final comic = comics[index];
+                final comic = list[index];
                 return ComicCard(
                   id: comic.id,
                   title: comic.title,

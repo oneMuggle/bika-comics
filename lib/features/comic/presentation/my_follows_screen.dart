@@ -6,6 +6,7 @@ import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../../../shared/widgets/comic_card.dart';
 import '../data/comic_repository.dart';
+import '../data/forbid_words_filter_helper.dart';
 import '../domain/comic_model.dart';
 import 'comic_detail_screen.dart';
 
@@ -22,6 +23,9 @@ class MyFollowsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncFollows = ref.watch(myFollowsProvider);
+    final displayList = ref.watch(
+      filteredComicsProvider(asyncFollows.valueOrNull ?? const <Comic>[]),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -51,7 +55,8 @@ class MyFollowsScreen extends ConsumerWidget {
           ),
         ),
         data: (comics) {
-          if (comics.isEmpty) {
+          final list = displayList;
+          if (list.isEmpty) {
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -75,9 +80,9 @@ class MyFollowsScreen extends ConsumerWidget {
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
               ),
-              itemCount: comics.length,
+              itemCount: list.length,
               itemBuilder: (context, index) {
-                final comic = comics[index];
+                final comic = list[index];
                 return ComicCard(
                   id: comic.id,
                   title: comic.title,

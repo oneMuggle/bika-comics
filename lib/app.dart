@@ -24,6 +24,7 @@ import 'features/friend/presentation/friend_posts_screen.dart';
 import 'features/game/presentation/game_list_screen.dart';
 import 'features/history/presentation/history_screen.dart';
 import 'features/home/presentation/home_screen.dart';
+import 'features/nas/presentation/nas_local_screen.dart';
 import 'features/chat/presentation/chat_room_screen.dart';
 import 'features/chat/presentation/chat_rooms_screen.dart';
 import 'features/settings/presentation/settings_screen.dart';
@@ -117,6 +118,7 @@ class _PicacgAppState extends ConsumerState<PicacgApp> {
             roomName: args?['roomName'] ?? '聊天室',
           );
         },
+        '/nas-local': (context) => const NasLocalScreen(),
       },
     );
   }

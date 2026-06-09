@@ -5,6 +5,7 @@ import '../../../core/api/api_client.dart';
 import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../../../shared/widgets/comic_card.dart';
+import '../data/forbid_words_filter_helper.dart';
 import '../domain/comic_model.dart';
 import 'comic_detail_screen.dart';
 
@@ -90,6 +91,8 @@ class _ComicListScreenState extends ConsumerState<ComicListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 屏蔽词过滤（仅在设置变更时重新计算，命中效率高）
+    final displayList = ref.watch(filteredComicsProvider(_comics));
     return Scaffold(
       appBar: AppBar(
         title: const Text('哔咔漫画'),
@@ -108,39 +111,56 @@ class _ComicListScreenState extends ConsumerState<ComicListScreen> {
           ),
         ],
       ),
-      body: _comics.isEmpty && _isLoading
+      body: displayList.isEmpty && _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _onRefresh,
-              child: GridView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(12),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  childAspectRatio: 0.65,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
-                itemCount: _comics.length + (_isLoading ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index >= _comics.length) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  final comic = _comics[index];
-                  return ComicCard(
-                    id: comic.id,
-                    title: comic.title,
-                    coverUrl: comic.coverUrl,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => ComicDetailScreen(comicId: comic.id),
+              child: displayList.isEmpty
+                  ? ListView(
+                      // ListView 让 RefreshIndicator 仍可下拉
+                      children: const [
+                        SizedBox(height: 120),
+                        Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Text('没有可显示的漫画',
+                                style: TextStyle(color: Colors.grey)),
+                          ),
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
+                      ],
+                    )
+                  : GridView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(12),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        childAspectRatio: 0.65,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemCount: displayList.length + (_isLoading ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index >= displayList.length) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        }
+                        final comic = displayList[index];
+                        return ComicCard(
+                          id: comic.id,
+                          title: comic.title,
+                          coverUrl: comic.coverUrl,
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ComicDetailScreen(comicId: comic.id),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
             ),
     );
   }

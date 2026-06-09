@@ -7,6 +7,7 @@ import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../../../shared/constants/app_strings.dart';
 import '../data/comic_repository.dart';
+import '../data/forbid_words_filter_helper.dart';
 import '../domain/comic_model.dart';
 import 'categories_screen.dart';
 import 'comic_detail_screen.dart';
@@ -96,6 +97,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final hasQuery = ref.watch(searchQueryProvider).isNotEmpty;
     final asyncKeywords = ref.watch(searchKeywordsProvider);
     final asyncHistory = ref.watch(localSearchHistoryProvider);
+    // 屏蔽词过滤（与历史 / 热词 chip 区无关，仅作用于搜索结果列表）
+    final filteredResults =
+        ref.watch(filteredComicsProvider(results.valueOrNull ?? const <Comic>[]));
 
     return Scaffold(
       appBar: AppBar(
@@ -215,7 +219,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         const Center(child: CircularProgressIndicator()),
                     error: (e, s) => Center(child: Text('搜索失败: $e')),
                     data: (comics) {
-                      if (comics.isEmpty &&
+                      if (filteredResults.isEmpty &&
                           ref.watch(searchQueryProvider).isNotEmpty) {
                         return const Center(child: Text('没有找到相关漫画'));
                       }
@@ -228,9 +232,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
                         ),
-                        itemCount: comics.length,
+                        itemCount: filteredResults.length,
                         itemBuilder: (context, index) {
-                          final comic = comics[index];
+                          final comic = filteredResults[index];
                           return GestureDetector(
                             onTap: () {
                               Navigator.of(context).push(

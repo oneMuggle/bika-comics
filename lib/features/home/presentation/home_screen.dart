@@ -6,6 +6,7 @@ import '../../../core/api/api_client.dart';
 import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../../../shared/widgets/comic_card.dart';
+import '../../comic/data/forbid_words_filter_helper.dart';
 import '../../comic/domain/comic_model.dart';
 import '../../comic/presentation/comic_detail_screen.dart';
 
@@ -164,49 +165,64 @@ class _RandomTab extends ConsumerWidget {
           ],
         ),
       ),
-      data: (comics) => RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(homeRandomProvider);
-        },
-        child: GridView.builder(
-          padding: const EdgeInsets.all(12),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: 0.65,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemCount: comics.length,
-          itemBuilder: (context, index) {
-            final comic = comics[index];
-            return ComicCard(
-              id: comic.id,
-              title: comic.title,
-              coverUrl: comic.coverUrl,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => ComicDetailScreen(comicId: comic.id),
-                  ),
-                );
-              },
-            );
+      data: (comics) {
+        final filtered = ref.watch(filteredComicsProvider(comics));
+        return RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(homeRandomProvider);
           },
-        ),
-      ),
+          child: filtered.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text('没有可显示的漫画',
+                        style: TextStyle(color: Colors.grey)),
+                  ),
+                )
+              : GridView.builder(
+                  padding: const EdgeInsets.all(12),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 0.65,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final comic = filtered[index];
+                    return ComicCard(
+                      id: comic.id,
+                      title: comic.title,
+                      coverUrl: comic.coverUrl,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ComicDetailScreen(comicId: comic.id),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+        );
+      },
     );
   }
 }
 
 /// 推荐区块 Section
-class _CollectionSection extends StatelessWidget {
+class _CollectionSection extends ConsumerWidget {
   final ComicCollection collection;
 
   const _CollectionSection({required this.collection});
 
   @override
-  Widget build(BuildContext context) {
-    if (collection.comics.isEmpty) return const SizedBox.shrink();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final filtered =
+        ref.watch(filteredComicsProvider(collection.comics));
+    if (filtered.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,9 +240,9 @@ class _CollectionSection extends StatelessWidget {
           height: 200,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: collection.comics.length,
+            itemCount: filtered.length,
             itemBuilder: (context, index) {
-              final comic = collection.comics[index];
+              final comic = filtered[index];
               return Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: SizedBox(

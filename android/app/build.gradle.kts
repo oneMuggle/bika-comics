@@ -7,7 +7,9 @@ plugins {
 
 android {
     namespace = "com.example.picacg_flutter_shell"
-    compileSdk = 35
+    // androidx.core 1.18.0 / navigationevent 1.0.2 require compileSdk 36+
+    // (bumped 2026-06-09 from 35 to keep up with androidx)
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {

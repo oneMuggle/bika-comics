@@ -5,6 +5,7 @@ import '../../../core/api/api_client.dart';
 import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../../../shared/widgets/comic_card.dart';
+import '../data/forbid_words_filter_helper.dart';
 import '../domain/comic_model.dart';
 import 'comic_detail_screen.dart';
 
@@ -158,6 +159,9 @@ class CategoryComicsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncComics = ref.watch(categoryComicsProvider(category.id));
+    final displayList = ref.watch(
+      filteredComicsProvider(asyncComics.valueOrNull ?? const <Comic>[]),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -174,7 +178,8 @@ class CategoryComicsScreen extends ConsumerWidget {
               Text('加载失败: $error'),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: () => ref.invalidate(categoryComicsProvider(category.id)),
+                onPressed: () =>
+                    ref.invalidate(categoryComicsProvider(category.id)),
                 child: const Text('重试'),
               ),
             ],
@@ -184,31 +189,41 @@ class CategoryComicsScreen extends ConsumerWidget {
           onRefresh: () async {
             ref.invalidate(categoryComicsProvider(category.id));
           },
-          child: GridView.builder(
-            padding: const EdgeInsets.all(12),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 0.65,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: comics.length,
-            itemBuilder: (context, index) {
-              final comic = comics[index];
-              return ComicCard(
-                id: comic.id,
-                title: comic.title,
-                coverUrl: comic.coverUrl,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => ComicDetailScreen(comicId: comic.id),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+          child: displayList.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text('没有可显示的漫画',
+                        style: TextStyle(color: Colors.grey)),
+                  ),
+                )
+              : GridView.builder(
+                  padding: const EdgeInsets.all(12),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 0.65,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: displayList.length,
+                  itemBuilder: (context, index) {
+                    final comic = displayList[index];
+                    return ComicCard(
+                      id: comic.id,
+                      title: comic.title,
+                      coverUrl: comic.coverUrl,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ComicDetailScreen(comicId: comic.id),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
         ),
       ),
     );

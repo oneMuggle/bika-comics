@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../../../shared/widgets/comic_card.dart';
 import '../data/batch_search_repository.dart';
+import '../data/forbid_words_filter_helper.dart';
 import 'comic_detail_screen.dart';
 
 /// 批量搜索工具
@@ -169,13 +170,15 @@ class _BatchSearchScreenState extends ConsumerState<BatchSearchScreen> {
   }
 }
 
-class _BatchItemCard extends StatelessWidget {
+class _BatchItemCard extends ConsumerWidget {
   final BatchSearchItem item;
   final VoidCallback? onRemove;
   const _BatchItemCard({required this.item, this.onRemove});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 屏蔽词过滤
+    final filteredResults = ref.watch(filteredComicsProvider(item.results));
     return Card(
       child: ExpansionTile(
         leading: item.isLoading
@@ -199,7 +202,7 @@ class _BatchItemCard extends StatelessWidget {
                   ? '失败：${item.error}'
                   : item.finishedAt == null
                       ? '等待'
-                      : '共 ${item.results.length} 个结果',
+                      : '共 ${filteredResults.length} 个结果',
           style: TextStyle(
             color: item.error != null ? Colors.redAccent : null,
             fontSize: 12,
@@ -213,11 +216,11 @@ class _BatchItemCard extends StatelessWidget {
                 tooltip: '删除',
               ),
         children: [
-          if (item.results.isEmpty && !item.isLoading && item.error == null)
+          if (filteredResults.isEmpty && !item.isLoading && item.error == null)
             Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
-                '无结果',
+                item.results.isEmpty ? '无结果' : '全部结果已被屏蔽词过滤',
                 style: TextStyle(color: AppColors.secondaryText),
               ),
             )
@@ -233,9 +236,9 @@ class _BatchItemCard extends StatelessWidget {
                 crossAxisSpacing: 8,
                 childAspectRatio: 0.62,
               ),
-              itemCount: item.results.length,
+              itemCount: filteredResults.length,
               itemBuilder: (context, index) {
-                final c = item.results[index];
+                final c = filteredResults[index];
                 return ComicCard(
                   id: c.id,
                   title: c.title,

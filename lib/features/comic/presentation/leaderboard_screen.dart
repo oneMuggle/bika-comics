@@ -5,6 +5,7 @@ import '../../../core/api/api_client.dart';
 import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../../../shared/widgets/comic_card.dart';
+import '../data/forbid_words_filter_helper.dart';
 import '../domain/comic_model.dart';
 import 'comic_detail_screen.dart';
 import 'knight_rank_screen.dart';
@@ -87,6 +88,9 @@ class _ComicRankTab extends ConsumerWidget {
       }
     });
     final asyncLeaderboard = ref.watch(leaderboardProvider);
+    final filtered = ref.watch(
+      filteredComicsProvider(asyncLeaderboard.valueOrNull ?? const <Comic>[]),
+    );
 
     return asyncLeaderboard.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -109,24 +113,33 @@ class _ComicRankTab extends ConsumerWidget {
         onRefresh: () async {
           ref.invalidate(leaderboardProvider);
         },
-        child: ListView.builder(
-          padding: const EdgeInsets.all(12),
-          itemCount: comics.length,
-          itemBuilder: (context, index) {
-            final comic = comics[index];
-            return _RankCard(
-              rank: index + 1,
-              comic: comic,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => ComicDetailScreen(comicId: comic.id),
-                  ),
-                );
-              },
-            );
-          },
-        ),
+        child: filtered.isEmpty
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('没有可显示的漫画',
+                      style: TextStyle(color: Colors.grey)),
+                ),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: filtered.length,
+                itemBuilder: (context, index) {
+                  final comic = filtered[index];
+                  return _RankCard(
+                    rank: index + 1,
+                    comic: comic,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ComicDetailScreen(comicId: comic.id),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../../../shared/widgets/comic_card.dart';
 import '../data/comic_repository.dart';
+import '../data/forbid_words_filter_helper.dart';
 import '../domain/comic_model.dart';
 import 'categories_screen.dart' show Category, categoriesProvider;
 import 'comic_detail_screen.dart';
@@ -87,6 +88,8 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
   @override
   Widget build(BuildContext context) {
     final asyncCategories = ref.watch(categoriesProvider);
+    final filteredResults =
+        ref.watch(filteredComicsProvider(_results ?? const <Comic>[]));
 
     return Scaffold(
       appBar: AppBar(
@@ -219,14 +222,14 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
           // 错误/结果区
           Expanded(
             flex: 3,
-            child: _buildResultArea(),
+            child: _buildResultArea(filteredResults),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildResultArea() {
+  Widget _buildResultArea(List<Comic> filteredResults) {
     if (_error != null) {
       return Center(
         child: Padding(
@@ -254,11 +257,12 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
         ),
       );
     }
-    if (_results!.isEmpty) {
+    if (filteredResults.isEmpty) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(24),
-          child: Text('未找到匹配的漫画', style: TextStyle(color: Colors.grey)),
+          child: Text('未找到匹配的漫画（可能已被屏蔽词过滤）',
+              style: TextStyle(color: Colors.grey)),
         ),
       );
     }
@@ -270,9 +274,9 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
-      itemCount: _results!.length,
+      itemCount: filteredResults.length,
       itemBuilder: (context, index) {
-        final comic = _results![index];
+        final comic = filteredResults[index];
         return ComicCard(
           id: comic.id,
           title: comic.title,
