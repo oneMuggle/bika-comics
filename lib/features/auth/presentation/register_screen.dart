@@ -19,9 +19,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _nameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
-  String? _confirmPassword;
-  String? _registerError;
+ bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {

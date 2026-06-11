@@ -6,7 +6,7 @@ import '../../../shared/widgets/comic_card.dart';
 import '../data/comic_repository.dart';
 import '../data/forbid_words_filter_helper.dart';
 import '../domain/comic_model.dart';
-import 'categories_screen.dart' show Category, categoriesProvider;
+import 'categories_screen.dart' show categoriesProvider;
 import 'comic_detail_screen.dart';
 
 /// 高级搜索页面

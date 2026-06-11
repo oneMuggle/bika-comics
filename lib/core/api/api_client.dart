@@ -1,10 +1,7 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
 
 import '../../shared/constants/api_constants.dart';
 import '../storage/secure_storage.dart';
-import '../utils/proxy_selector.dart';
 
 /// API 客户端单例
 /// 使用 Dio 实现，支持代理配置和 Token 自动注入

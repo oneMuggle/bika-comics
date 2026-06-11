@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -56,11 +55,9 @@ class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tabIndex = ref.watch(homeTabIndexProvider);
-
-    return Scaffold(
-      appBar: AppBar(
+ Widget build(BuildContext context, WidgetRef ref) {
+ return Scaffold(
+ appBar: AppBar(
         title: const Text('哔咔漫画'),
         leading: Builder(
           builder: (context) => IconButton(

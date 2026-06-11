@@ -11,7 +11,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/api/api_client.dart';
 import '../../../shared/constants/api_constants.dart';
 
 class PicaShareService {

@@ -4,14 +4,12 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/db/database.dart';
 import '../../../shared/constants/api_constants.dart';
-import '../../comic/domain/comic_model.dart';
 
 /// 下载状态枚举
 enum DownloadTaskStatus {
