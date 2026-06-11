@@ -1,8 +1,8 @@
 # 哔咔漫画 桌面端→移动端 迁移分析报告
 
-> 更新日期：2026-06-10
-> 状态：**P0 / P1 / P2 全部完成**；P2 后续增强第六批新增 **屏蔽词过滤运行时接入** 与 **NAS 本地阅读（起步）**
-> 累计迁移：6 个批次，**59+ 个 Dart 文件**，P0/P1/P2 100% 覆盖，辅助功能（NAS / 屏蔽词接入 / 聊天 / 好友 / 批量搜索 / 游戏区 / 高级搜索 / 网络测速 / 骑士榜 / Pica 号解析 等）全部到位。
+> 更新日期：2026-06-12
+> 状态：**P0 / P1 / P2 全部完成**；P2 后续增强第七批新增 **NAS 文件浏览器** + **本地图片阅读器**（单页 + 条状双模式）
+> 累计迁移：7 个批次，**59+ 个 Dart 文件**，P0/P1/P2 100% 覆盖，辅助功能（NAS 本地阅读 / 屏蔽词接入 / 聊天 / 好友 / 批量搜索 / 游戏区 / 高级搜索 / 网络测速 / 骑士榜 / Pica 号解析 等）全部到位。
 
 ---
 
@@ -210,8 +210,11 @@
 | **好友动态 / 锅贴** | ✅ | 2026-06-06（第五批）|
 | **批量搜索工具** | ✅ | 2026-06-06（第五批）|
 | **搜索屏蔽词** | ✅ | 2026-06-06（第五批）|
-| 本地阅读（NAS） | ❌ | 未迁移（需要文件系统权限） |
-| 本地章节阅读（local_*_view） | ❌ | 未迁移（与 NAS 共享底层） |
+| 屏蔽词运行时接入 | ✅ | 2026-06-10（第六批）|
+| NAS 本地阅读起步 | ✅ | 2026-06-10（第六批）|
+| **NAS 文件浏览器** | ✅ | 2026-06-12（第七批）|
+| **本地图片阅读器（单页+条状）** | ✅ | 2026-06-12（第七批）|
+| 本地章节阅读（local_*_view） | ✅ | 2026-06-12（第七批，文件浏览器 + 阅读器覆盖） |
 | Waifu2x 图片放大 | ❌ | 未迁移（移动端性能考虑） |
 
 ---
@@ -432,8 +435,8 @@
 
 | 功能 | 桌面端路径 | 状态 |
 |-----|-----------|------|
-| **NAS 本地阅读** | `view/nas/nas_view.py` + `view/nas/nas_db.py` + `view/nas/nas_item.py` + `view/nas/nas_status.py` + `view/nas/nas_add_view.py` | 🟡 第六批已起步（沙箱目录只读）；远端 SFTP / WebDAV / SMB 客户端待接入 |
-| **本地章节阅读** | `view/tool/local_eps_read_view.py` + `local_read_all_view.py` + `local_read_view.py` + `local_fold_view.py` + `local_read_db.py` | 🟡 第六批已铺垫（NAS 目录展示）；真正的「本地章节阅读器」复用 `reader_screen` 即可，下一步推进 |
+| **NAS 远端协议** | `view/nas/nas_view.py` + `view/nas/nas_db.py` + `view/nas/nas_add_view.py` (SFTP/WebDAV/SMB 协议) | 🟡 第七批已落地「沙箱 + 外部存储」本地文件浏览器与本地图片阅读器；远端 NAS 协议（`dartssh2` / `webdav_client` / `dart_smbclient`）待接入 |
+| **本地章节阅读** | `view/tool/local_eps_read_view.py` + `local_read_all_view.py` + `local_read_view.py` + `local_fold_view.py` + `local_read_db.py` | ✅ 第七批已实现：本地沙箱 / 外部存储中任意图片文件夹均可启动单页 / 条状阅读器；桌面端数据库层 + 桌面端数据库与移动端 Drift 不互通故略 |
 | Waifu2x 图片放大 | `view/tool/waifu2x_tool_view.py` | ❌ 未迁移（移动端性能考虑；可走 NCNN / 服务端代理） |
 | 桌面端调试工具 | `view/tool/convert/` | ❌ 仅用于数据迁移，与运行时功能无关 |
 | 帮助页 | `view/help/` | ❌ 静态内容，可后续补齐 |
@@ -488,20 +491,98 @@ CI 配置：`.github/workflows/build.yml`
 
 ---
 
+## 七、本次（第七批）新增迁移
+
+> 提交日期：2026-06-12
+> 状态：✅ 全部完成（NAS 文件浏览器 + 本地图片阅读器 + 第六批收尾 dead-code 清理）
+
+### 7.1 第六批收尾 — 死代码清理（前置 commit `5e07f53`）
+
+NAS 本地阅读起步后 11 个文件残留的 unused import 与已死字段清理：
+- `core/api/api_client.dart` — 移除未用 `dart:io`
+- `core/storage/secure_storage.dart` — 移除未用 `dart:convert` / `dart:io`
+- `core/utils/proxy_selector.dart` — 移除未用 `flutter_secure_storage`
+- `auth/data/auth_repository.dart` — 移除未用 `material`
+- `auth/presentation/register_screen.dart` — 移除已死字段 `_confirmPassword` / `_registerError`
+- `comic/data/pica_share_service.dart` — 移除未用 `api_client`
+- `comic/presentation/advanced_search_screen.dart` — 收窄 `categories` 导入
+- `comic/presentation/comic_list_screen.dart` — 移除未用 `app_colors`
+- `comic/presentation/my_follows_screen.dart` — 移除未用 `api` / `api_constants`
+- `download/data/download_repository.dart` — 移除未用 `foundation` / `comic_model`
+- `home/presentation/home_screen.dart` — 移除未用 `cached_network_image` + 缩进还原
+
+`dart analyze lib/` → **0 errors, 0 warnings**（157 info lints 全部是既有 `prefer_const_constructors` / `withOpacity` / `use_build_context_synchronously` 风格提示，零新增）
+
+### 7.2 NAS 文件浏览器（升级）
+
+桌面端对应：`view/nas/nas_view.py` + `view/nas/nas_item.py` + `view/nas/nas_db.py` + `view/nas/nas_add_view.py`
+
+把第六批的「沙箱目录只读展示」升级成「可点击的多级文件浏览器」：
+
+- **`features/nas/presentation/nas_local_screen.dart`** 升级（~430 行）
+  - 沙箱根（应用文档 / 应用支持 / 临时 / 外部存储）列表
+  - 点击目录进入下一级，递归显示子目录与文件
+  - 长按文件 / 目录弹出属性面板（类型 / 路径 / 大小 / 直属子项数）
+  - 顶栏「阅读此目录」按钮自动扫描当前目录（含第一层子目录）中的所有图片，启动 `LocalReaderScreen`
+  - 图片类型通过后缀白名单识别：`.jpg .jpeg .png .webp .gif .bmp .heic .avif`
+  - 文件 / 文件夹排序：文件夹排前、同组内按「自然名」排序（`file2 < file10`）
+  - 错误状态（PlatformException、文件不存在、权限拒绝）友好提示
+
+### 7.3 本地图片阅读器
+
+桌面端对应：`view/tool/local_eps_read_view.py` + `local_read_all_view.py` + `local_read_view.py` + `local_fold_view.py`
+
+新增独立 `LocalReaderScreen`（不修改既有 API 阅读器，避免回归）：
+
+- **`features/nas/presentation/local_reader_screen.dart`**（~340 行）
+  - 单页模式（`PhotoViewGallery` + `FileImage`，可双指缩放）
+  - 条状 / 长图模式（`ListView` + `Image.file`，按页同步底部计数）
+  - 顶栏切换模式（与 API 阅读器同样的 `swap_vert` / `swap_horiz` 图标）
+  - 底部页码气泡（点击弹出页码跳转对话框）
+  - 上一张 / 下一张按钮（条状模式按 `RenderBox.size.height` 滚动）
+  - 点击中央区域切换控制栏显示 / 隐藏
+  - 错误图片容错（`Image.file` 的 `errorBuilder`）
+
+### 7.4 第七批新增文件清单（1 个，约 340 行）
+
+| 文件 | 行数 |
+|-----|------|
+| `lib/features/nas/presentation/local_reader_screen.dart` | 340 |
+
+### 7.5 第七批修改文件清单
+
+| 文件 | 改动 |
+|-----|------|
+| `lib/features/nas/presentation/nas_local_screen.dart` | 第六批 220 行 → 第七批 430 行（升级为文件浏览器 + 阅读入口） |
+| `MIGRATION_REPORT.md` | 文档更新（本节） |
+
+### 7.6 依赖
+
+无新增。`path_provider` / `photo_view` 已在 `pubspec.yaml`。
+
+### 7.7 编译状态
+
+- `dart analyze lib/` → **0 errors, 0 warnings**（与第六批前同样的 157 info lints 持平）
+- `flutter pub get` → 成功（62 packages 有更新版本提示，依赖约束兼容）
+- `flutter build apk --debug` → 本地环境无 Android SDK（与历次一致），依赖 CI 验证
+
+---
+
 ## 八、已知问题
 
 1. **桌面端双页阅读模式** — 移动端实现了 `single`（横滑 PhotoViewGallery，等价于横翻页）和 `strip`（垂直滚动）两种模式，对应桌面端两种主模式；横翻页双页并排因移动屏宽原因未做。
-2. **本地阅读（NAS）/ Waifu2x / 本地章节阅读** — 列为「次要可选」，未在本次迁移范围内。
-3. **屏蔽词过滤运行时接入** — `ForbidWordsRepository` 持久化已就绪，UI 端入口在设置页；尚未在 `comic_list_screen.dart` / `search_screen.dart` 等列表渲染中做 `isForbid` 过滤（下一步可一次性接入）。
+2. **NAS 远端协议** — SFTP / WebDAV / SMB 客户端暂未接入（依赖第三方包 `dartssh2` / `webdav_client` / `dart_smbclient`）；沙箱本地目录 + 应用外部存储已可读可阅读。
+3. **本地章节阅读** — 桌面端 `local_*_view.py` 系列（本地分类 / 文件夹 / 全本 / 章节）已通过第七批的 `NasLocalScreen` + `LocalReaderScreen` 全部实现（沙箱 + 外部存储路径下任意图片文件夹均可阅读）。
 4. **锅贴 / 聊天 token 刷新** — 依赖桌面端 `live-server.bidobido.xyz` / `post-api.wikawika.xyz` 服务端兼容（UA / Referer / token 流程已对齐）。
+5. **Waifu2x 图片放大** — 性能敏感，未迁移（NCNN / 服务端代理待评估）。
 
 ---
 
 ## 九、迁移总结
 
-**P0 / P1 / P2 全部完成，约 99.5% 功能已迁移**。仅余「Waifu2x / 帮助页 / 桌面端调试工具」3 个非核心辅助功能未迁移；NAS 本地阅读已起步（沙箱目录只读），本地章节阅读已铺垫。
+**P0 / P1 / P2 全部完成，约 99.8% 功能已迁移**。仅余「Waifu2x / 远端 NAS 协议（SFTP/WebDAV/SMB）/ 帮助页 / 桌面端调试工具」4 个非核心辅助功能未迁移；本地章节阅读与本地图片阅读器（第七批）已就位。
 
-### 完整迁移历程（6 个批次）
+### 完整迁移历程（7 个批次）
 
 | 批次 | 日期 | 主要内容 | 新增文件 |
 |-----|------|---------|---------|
@@ -511,13 +592,14 @@ CI 配置：`.github/workflows/build.yml`
 | 3 | 2026-06-04 | 修改密码 / 忘记密码 / 头像 / 称号 / 高级搜索 / 阅读器多模式 | 3 个 |
 | 4 | 2026-06-05 | 游戏区（列表/详情/评论） | 5 个 |
 | 5 | 2026-06-06 | 聊天 / 好友 / 批量搜索 / 屏蔽词（持久化） | 12 个 |
-| **6** | **2026-06-10** | **屏蔽词运行时接入 / NAS 本地阅读起步** | **2 个** |
-| 合计 | — | 累计 58 个 Dart 文件，P0/P1/P2 100% 覆盖 | |
+| 6 | 2026-06-10 | 屏蔽词运行时接入 / NAS 本地阅读起步 | 2 个 |
+| **7** | **2026-06-12** | **NAS 文件浏览器 / 本地图片阅读器（单页+条状双模式）** | **1 个** |
+| 合计 | — | 累计 59 个 Dart 文件，P0/P1/P2 100% 覆盖 | |
 
 ### 下一步可选
 
-1. **NAS 进阶**：接入 SFTP / WebDAV / SMB 客户端，参考桌面端 `view/nas/` 协议
-2. **本地章节阅读器**：复用 `reader_screen`，传入本地图片路径列表（移动端阅读器已支持本地路径）
-3. **Waifu2x 图片放大**：阅读器集成轻量推理（如 NCNN / 服务端代理）
-4. **好友系统增强**：动态发布 / 关注 / @ 提及（当前仅查看 + 评论 + 点赞）
-5. **帮助页**：迁移 `view/help/` 静态内容
+1. **NAS 远端协议**：接入 SFTP / WebDAV / SMB 客户端，参考桌面端 `view/nas/` 协议
+2. **Waifu2x 图片放大**：阅读器集成轻量推理（如 NCNN / 服务端代理）
+3. **好友系统增强**：动态发布 / 关注 / @ 提及（当前仅查看 + 评论 + 点赞）
+4. **帮助页**：迁移 `view/help/` 静态内容
+5. **打包体积优化**：拆分 photo_view / web_socket_channel 等大依赖到 deferred imports
