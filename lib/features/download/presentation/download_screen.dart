@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/db/database.dart';
 import '../../../shared/constants/app_colors.dart';
+import '../../export/presentation/export_screen.dart';
 import '../data/download_repository.dart';
 
 /// 下载管理页面
@@ -729,7 +730,31 @@ class _DownloadDetailSheet extends ConsumerWidget {
                         },
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildActionButton(
+                        context,
+                        ref,
+                        icon: Icons.ios_share,
+                        label: '导出',
+                        color: AppColors.primary,
+                        onPressed: task.completedEpisodes == 0
+                            ? null
+                            : () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ExportScreen(
+                                      comicId: task.comicId,
+                                      comicTitle: task.title,
+                                    ),
+                                  ),
+                                );
+                              },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: _buildActionButton(
                         context,
@@ -783,7 +808,7 @@ class _DownloadDetailSheet extends ConsumerWidget {
     required IconData icon,
     required String label,
     required Color color,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
   }) {
     return ElevatedButton.icon(
       onPressed: onPressed,

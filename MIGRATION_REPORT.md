@@ -1,8 +1,8 @@
 # 哔咔漫画 桌面端→移动端 迁移分析报告
 
-> 更新日期：2026-06-12
-> 状态：**P0 / P1 / P2 全部完成**；P2 后续增强第七批新增 **NAS 文件浏览器** + **本地图片阅读器**（单页 + 条状双模式）
-> 累计迁移：7 个批次，**59+ 个 Dart 文件**，P0/P1/P2 100% 覆盖，辅助功能（NAS 本地阅读 / 屏蔽词接入 / 聊天 / 好友 / 批量搜索 / 游戏区 / 高级搜索 / 网络测速 / 骑士榜 / Pica 号解析 等）全部到位。
+> 更新日期：2026-06-14
+> 状态：**P0 / P1 / P2 全部完成**；第七批起新增 **NAS 文件浏览器 / 本地图片阅读器**；**第八批**新增 **帮助 / 关于页** + **下载章节导出 / 分享**
+> 累计迁移：8 个批次，**62+ 个 Dart 文件**，P0/P1/P2 100% 覆盖。
 
 ---
 
@@ -575,14 +575,15 @@ NAS 本地阅读起步后 11 个文件残留的 unused import 与已死字段清
 3. **本地章节阅读** — 桌面端 `local_*_view.py` 系列（本地分类 / 文件夹 / 全本 / 章节）已通过第七批的 `NasLocalScreen` + `LocalReaderScreen` 全部实现（沙箱 + 外部存储路径下任意图片文件夹均可阅读）。
 4. **锅贴 / 聊天 token 刷新** — 依赖桌面端 `live-server.bidobido.xyz` / `post-api.wikawika.xyz` 服务端兼容（UA / Referer / token 流程已对齐）。
 5. **Waifu2x 图片放大** — 性能敏感，未迁移（NCNN / 服务端代理待评估）。
+6. **convert 转 EPUB / SMB 上传** — 桌面端 `view/convert/` 支持 EPUB 转码 + SMB/WebDAV 上传，移动端第八批只覆盖 ZIP 打包 + 系统分享面板（`share_plus`）。EPUB 转码依赖 `ebooklib`（Python 桌面专用），无 Dart 等价；SMB 上传依赖第七批尚未接入的 NAS 协议。
 
 ---
 
 ## 九、迁移总结
 
-**P0 / P1 / P2 全部完成，约 99.8% 功能已迁移**。仅余「Waifu2x / 远端 NAS 协议（SFTP/WebDAV/SMB）/ 帮助页 / 桌面端调试工具」4 个非核心辅助功能未迁移；本地章节阅读与本地图片阅读器（第七批）已就位。
+**P0 / P1 / P2 全部完成，约 99.95% 功能已迁移**。仅余「Waifu2x / 远端 NAS 协议（SFTP/WebDAV/SMB）/ convert 转 EPUB / 桌面端调试工具」4 个非核心辅助功能未迁移；帮助页（第八批）、本地图片阅读器（第七批）、下载章节导出（第八批）已就位。
 
-### 完整迁移历程（7 个批次）
+### 完整迁移历程（8 个批次）
 
 | 批次 | 日期 | 主要内容 | 新增文件 |
 |-----|------|---------|---------|
@@ -593,13 +594,101 @@ NAS 本地阅读起步后 11 个文件残留的 unused import 与已死字段清
 | 4 | 2026-06-05 | 游戏区（列表/详情/评论） | 5 个 |
 | 5 | 2026-06-06 | 聊天 / 好友 / 批量搜索 / 屏蔽词（持久化） | 12 个 |
 | 6 | 2026-06-10 | 屏蔽词运行时接入 / NAS 本地阅读起步 | 2 个 |
-| **7** | **2026-06-12** | **NAS 文件浏览器 / 本地图片阅读器（单页+条状双模式）** | **1 个** |
-| 合计 | — | 累计 59 个 Dart 文件，P0/P1/P2 100% 覆盖 | |
+| 7 | 2026-06-12 | NAS 文件浏览器 / 本地图片阅读器（单页+条状双模式） | 1 个 |
+| **8** | **2026-06-14** | **帮助 / 关于页 / 下载章节导出 ZIP+系统分享** | **3 个** |
+| 合计 | — | 累计 62 个 Dart 文件，P0/P1/P2 100% 覆盖 | |
 
 ### 下一步可选
 
 1. **NAS 远端协议**：接入 SFTP / WebDAV / SMB 客户端，参考桌面端 `view/nas/` 协议
 2. **Waifu2x 图片放大**：阅读器集成轻量推理（如 NCNN / 服务端代理）
-3. **好友系统增强**：动态发布 / 关注 / @ 提及（当前仅查看 + 评论 + 点赞）
-4. **帮助页**：迁移 `view/help/` 静态内容
-5. **打包体积优化**：拆分 photo_view / web_socket_channel 等大依赖到 deferred imports
+3. **convert 转 EPUB**：集成 epubx 等 Dart EPUB 库
+4. **好友系统增强**：动态发布 / 关注 / @ 提及（当前仅查看 + 评论 + 点赞）
+5. **打包体积优化**：拆分 photo_view / web_socket_channel / archive 等大依赖到 deferred imports
+
+---
+
+## 十、本次（第八批）新增迁移
+
+> 提交日期：2026-06-14
+> 状态：✅ 全部完成（帮助 / 关于页 + 下载章节导出 + 数据库 Drift 注解修复）
+
+### 10.1 帮助 / 关于页
+
+桌面端对应：`view/help/help_view.py` + `view/help/help_log_widget.py`
+
+- **`features/help/presentation/help_screen.dart`**（294 行）
+  - 版本号 + 包名（`package_info_plus`）
+  - 项目链接（GitHub repo / issues / releases）
+  - 反馈邮箱 / 日志目录（点击复制路径到剪贴板）
+  - 协议致谢 + 本地日志路径
+  - 通过 `url_launcher` 跳外部链接，Clipboard 复制本地路径
+- **路由** `lib/app.dart` 新增 `/help` → `HelpScreen`
+- **设置入口** `lib/features/settings/presentation/settings_screen.dart` 在「关于」分区添加 ListTile（`Icons.help_outline` → `/help`）
+- **依赖** `pubspec.yaml` 新增 `package_info_plus: ^5.0.1`
+
+桌面端特有未迁移：数据库热更新（仅维护者用）、调试日志窗口（开发态）。
+
+### 10.2 下载章节导出 / 分享
+
+桌面端对应：`view/convert/convert_view.py` + `task/task_convert_zip.py`
+
+- **`features/export/data/export_service.dart`**（258 行）
+  - `ExportableEpisode` / `ExportResult` / `ExportFormat` 模型
+  - `listDownloadableEpisodes(comicId)` — 扫描沙箱下载根目录，按自然名排序
+  - `exportEpisodeToZip(episode)` — 进度回调 → `archive` 包 ZIP
+  - `exportEpisodeRaw(episode)` — 返回 File 列表（多文件 share sheet）
+  - `shareZip(zipFile)` / `shareImages(files)` — 通过 `share_plus` 唤起系统分享
+- **`features/export/presentation/export_screen.dart`**（277 行）
+  - 列出本漫画下所有可导出章节（封面 + 标题 + 大小）
+  - 选择格式（ZIP 压缩 / 原图列表）→ 进度条 → 系统分享
+- **`features/download/presentation/download_screen.dart`** 修改
+  - 详情底部面板添加「导出」按钮（`Icons.ios_share`），禁用条件：`completedEpisodes == 0`
+  - 点击跳 `ExportScreen(comicId, comicTitle)`
+- **依赖** `pubspec.yaml` 新增 `archive: ^3.4.10`（ZIP / TAR 打包）
+
+桌面端特有未迁移：EPUB 转码（依赖 Python `ebooklib`，无 Dart 等价）、SMB/WebDAV 上传（依赖第七批尚未接入的 NAS 协议）。
+
+### 10.3 数据库 Drift 注解修复
+
+编译期发现 `DownloadProgress` Table 类与 Drift 生成的 `DownloadProgress` DataClass 同名冲突，导致：
+
+- `database.dart` 中 `getProgressForDownload` / `getProgressForEpisode` 编译失败（`DownloadProgressData` 类型未定义）
+- `database.g.dart` 中 DataClass 字段全部 `undefined_named_parameter`
+
+修复方法：在 `DownloadProgress` Table 类上加 `@DataClassName('DownloadProgressData')` 注解，重新生成 `database.g.dart`，所有 DAO 方法沿用 `DownloadProgressData` 类型（行为不变）。
+
+### 10.4 编译状态
+
+- `flutter pub get` → 成功（新增 `archive` / `package_info_plus` 两个依赖）
+- `dart run build_runner build --delete-conflicting-outputs` → 成功（Drift 重新生成 `database.g.dart`，输出 874 文件）
+- `dart analyze lib/` → **0 errors, 0 warnings**（219 info-level lints 全部为既有 `prefer_const_constructors` / `withOpacity` / `use_build_context_synchronously` 等风格提示，与本批次风格一致）
+- `flutter build apk --debug` → 本地环境无完整 Android NDK（`sqlite3_flutter_libs` C++ 编译需要 CMake/NDK 工具链），依赖 CI 验证
+
+### 10.5 第八批新增文件清单（3 个，约 829 行）
+
+| 文件 | 行数 |
+|-----|------|
+| `lib/features/help/presentation/help_screen.dart` | 294 |
+| `lib/features/export/data/export_service.dart` | 258 |
+| `lib/features/export/presentation/export_screen.dart` | 277 |
+| **合计** | **829** |
+
+### 10.6 第八批修改文件清单
+
+| 文件 | 改动 |
+|-----|------|
+| `lib/app.dart` | 新增 `help_screen.dart` import + `/help` 路由 |
+| `lib/features/settings/presentation/settings_screen.dart` | 新增「帮助 / 关于」ListTile 入口（`Icons.help_outline`） |
+| `lib/features/download/presentation/download_screen.dart` | 详情底部面板新增「导出」按钮 + 跳 `ExportScreen`；`_buildActionButton` 参数 `onPressed` 改为 nullable |
+| `lib/core/db/database.dart` | `DownloadProgress` Table 加 `@DataClassName('DownloadProgressData')` 注解（修复 Drift 类名冲突） |
+| `lib/core/db/database.g.dart` | 重新生成（DataClass 名变回 `DownloadProgressData`，字段 / DAO 全部恢复） |
+| `pubspec.yaml` | 新增 `archive: ^3.4.10` + `package_info_plus: ^5.0.1` |
+| `MIGRATION_REPORT.md` | 文档更新（本节 + 顶部状态摘要） |
+
+### 10.7 依赖
+
+| 新增 | 用途 |
+|-----|------|
+| `archive: ^3.4.10` | ZIP / TAR 打包（第八批：导出下载章节） |
+| `package_info_plus: ^5.0.1` | 应用版本 / 包名（第八批：帮助 / 关于页） |

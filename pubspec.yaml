@@ -41,6 +41,8 @@ dependencies:
   intl: ^0.18.1
   share_plus: ^7.2.1
   url_launcher: ^6.2.3
+  archive: ^3.4.10  # ZIP / TAR 打包（第八批：导出下载章节）
+  package_info_plus: ^5.0.1  # 应用版本信息（第八批：帮助 / 关于页）
 
   # 图片选择（头像上传）
   image_picker: ^1.0.7

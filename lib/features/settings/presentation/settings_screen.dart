@@ -231,6 +231,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // 关于
           _SectionHeader(title: AppStrings.about),
+          ListTile(
+            leading: const Icon(Icons.help_outline),
+            title: const Text('帮助 / 关于'),
+            subtitle: const Text('版本信息 / 项目链接 / 日志目录'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).pushNamed('/help');
+            },
+          ),
           const ListTile(
             leading: Icon(Icons.info_outline),
             title: Text(AppStrings.version),

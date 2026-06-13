@@ -63,6 +63,7 @@ class Downloads extends Table {
 }
 
 /// 下载进度表 - 跟踪每个章节的下载进度
+@DataClassName('DownloadProgressData')
 class DownloadProgress extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get downloadId => integer().references(Downloads, #id)();

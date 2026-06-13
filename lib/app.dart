@@ -22,6 +22,7 @@ import 'features/download/presentation/download_screen.dart';
 import 'features/friend/presentation/friend_post_detail_screen.dart';
 import 'features/friend/presentation/friend_posts_screen.dart';
 import 'features/game/presentation/game_list_screen.dart';
+import 'features/help/presentation/help_screen.dart';
 import 'features/history/presentation/history_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/nas/presentation/nas_local_screen.dart';
@@ -119,6 +120,7 @@ class _PicacgAppState extends ConsumerState<PicacgApp> {
           );
         },
         '/nas-local': (context) => const NasLocalScreen(),
+        '/help': (context) => const HelpScreen(),
       },
     );
   }
