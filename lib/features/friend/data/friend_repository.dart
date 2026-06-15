@@ -106,6 +106,51 @@ class FriendRepository {
       ),
     );
   }
+
+  /// 单条动态（GET /posts/{id}）
+  ///
+  /// 第九批新增：详情页需要展示 post 本身（不只是评论）。
+  /// 服务端 `/posts/{id}` 直接返回 post 字段（与列表内单条 schema 一致）。
+  Future<FriendPost> getPost(String postId) async {
+    final token = await SecureStorageHolder.instance.getApiToken() ?? '';
+    final response = await _dio().get(
+      '/posts/$postId',
+      options: Options(
+        headers: {
+          'Referer': '$_baseUrl/?token=$token',
+          'token': token,
+        },
+      ),
+    );
+    final data = response.data is Map
+        ? response.data as Map<String, dynamic>
+        : <String, dynamic>{};
+    final inner = (data['data'] is Map)
+        ? (data['data'] as Map).cast<String, dynamic>()
+        : data;
+    if (inner.isEmpty) {
+      throw FormatException('Empty response for /posts/$postId');
+    }
+    return FriendPost.fromJson(inner);
+  }
+
+  /// 动态点赞（PUT /posts/{id}/like）
+  ///
+  /// 第九批新增：桌面端没实现 post like（只有 comment like），但是锅贴 API
+  /// 服务端提供 `/posts/{id}/like` 端点。移动端在 detail 页面顺手补上，
+  /// 完成后整体对齐「评论点赞 / 动态点赞」两套交互。
+  Future<void> likePost(String postId) async {
+    final token = await SecureStorageHolder.instance.getApiToken() ?? '';
+    await _dio().put(
+      '/posts/$postId/like',
+      options: Options(
+        headers: {
+          'Referer': '$_baseUrl/?token=$token',
+          'token': token,
+        },
+      ),
+    );
+  }
 }
 
 final friendRepositoryProvider = Provider<FriendRepository>((ref) {
@@ -116,4 +161,12 @@ final friendRepositoryProvider = Provider<FriendRepository>((ref) {
 final friendPostsProvider =
     FutureProvider.family<FriendPostPage, int>((ref, offset) async {
   return ref.read(friendRepositoryProvider).getPosts(offset: offset);
+});
+
+/// 单条动态 Provider（按 postId 缓存）
+///
+/// 第九批新增：详情页需要展示 post 自身。
+final friendPostProvider =
+    FutureProvider.family<FriendPost, String>((ref, postId) async {
+  return ref.read(friendRepositoryProvider).getPost(postId);
 });

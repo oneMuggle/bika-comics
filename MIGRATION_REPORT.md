@@ -1,8 +1,8 @@
 # 哔咔漫画 桌面端→移动端 迁移分析报告
 
-> 更新日期：2026-06-14
-> 状态：**P0 / P1 / P2 全部完成**；第七批起新增 **NAS 文件浏览器 / 本地图片阅读器**；**第八批**新增 **帮助 / 关于页** + **下载章节导出 / 分享**
-> 累计迁移：8 个批次，**62+ 个 Dart 文件**，P0/P1/P2 100% 覆盖。
+> 更新日期：2026-06-16
+> 状态：**P0 / P1 / P2 全部完成**；第七批起新增 **NAS 文件浏览器 / 本地图片阅读器**；**第八批**新增 **帮助 / 关于页** + **下载章节导出 / 分享**；**第九批**补全 **好友动态详情页 + 动态点赞**
+> 累计迁移：9 个批次，**62+ 个 Dart 文件**，P0/P1/P2 100% 覆盖。
 
 ---
 
@@ -692,3 +692,136 @@ NAS 本地阅读起步后 11 个文件残留的 unused import 与已死字段清
 |-----|------|
 | `archive: ^3.4.10` | ZIP / TAR 打包（第八批：导出下载章节） |
 | `package_info_plus: ^5.0.1` | 应用版本 / 包名（第八批：帮助 / 关于页） |
+
+---
+
+## 十一、本次（第九批）新增迁移
+
+> 提交日期：2026-06-16
+> 状态：✅ 全部完成（好友动态详情页补全 + 动态点赞 + 下拉刷新）
+>
+> **触发原因**：第五批迁移的 `FriendPostDetailScreen` 只显示评论列表，**完全缺失 post 自身**（用户信息 / 文本 / 配图 / 总点赞数）；同时 `FriendRepository` 没有 `getPost` / `likePost` 端点。本批补齐此缺口。
+
+### 11.1 缺口分析（第五批 → 第九批）
+
+第五批迁移时（2026-06-06）`FriendPostDetailScreen` 只实现了评论列表，post 自身的展示被遗漏：
+
+- 详情页头只显示「动态详情」标题 + 评论列表，**点击列表卡片进入详情后看不到 post 内容**
+- 桌面端 `view/fried/qt_fried_msg.py` 虽然只展示评论，但弹窗是叠加在 `FriedView` 列表上方 → 用户在弹窗上下文里仍能看到原列表中的 post
+- 移动端用全屏路由 → post 内容必须自带，否则体验断裂
+- 动态点赞（`PUT /posts/{id}/like`）桌面端未实现，但服务端提供；移动端顺手补齐
+
+### 11.2 新增 API 端点
+
+| 端点 | 方法 | 对应 | 用途 |
+|------|------|------|------|
+| `/posts/{id}` | GET | `FriendRepository.getPost` | 拉取单条动态 |
+| `/posts/{id}/like` | PUT | `FriendRepository.likePost` | 动态点赞 / 取消点赞 |
+
+### 11.3 修改文件
+
+| 文件 | 改动 |
+|------|------|
+| `lib/features/friend/data/friend_repository.dart` | 新增 `getPost(postId)` + `likePost(postId)` 方法；新增 `friendPostProvider` (FutureProvider.family) |
+| `lib/features/friend/presentation/friend_post_detail_screen.dart` | 重构：头部加 `_PostHeader` 卡片（用户信息 / 文本 / 配图网格 / 互动数据 + 动态点赞按钮）；评论列表独立区段；新增下拉刷新 + AppBar 刷新按钮；新增 `_MediaGrid` 配图网格组件 |
+| `MIGRATION_REPORT.md` | 文档更新（本节 + 顶部状态摘要） |
+
+### 11.4 关键实现细节
+
+#### 11.4.1 详情页重构
+
+详情页结构由「纯评论列表」升级为「顶部 post 卡片 + 评论列表 + 底部评论输入栏」，三者用 `ListView` + `RefreshIndicator` 包裹支持下拉刷新：
+
+- `_PostHeader` 渲染用户头像 / 名称 / 等级 / 称号 / 文本 / 配图 / 互动数据
+- 互动数据行包含「动态点赞 ❤️ 按钮」+ 评论数 + post id
+- AppBar 新增刷新按钮（同时 invalidate `friendPostProvider` 和评论列表）
+
+#### 11.4.2 动态点赞策略
+
+不采用乐观更新，而采用「服务端确认 + invalidate 拉取真实值」：
+
+```dart
+Future<void> _togglePostLike(FriendPost post) async {
+  final repo = ref.read(friendRepositoryProvider);
+  try {
+    await repo.likePost(post.id);
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('点赞失败: $e')),
+    );
+    return;
+  }
+  ref.invalidate(friendPostProvider(post.id));
+  ref.invalidate(friendPostsProvider);
+}
+```
+
+**理由**：
+- `FutureProvider.family` 没有 `.notifier`，无法直接 setState
+- 锅贴点赞是低频操作，等待服务端确认再 refresh 的延迟可接受
+- 避免乐观值与服务端真实值不一致（避免反复点击造成的状态漂移）
+- 失败时 SnackBar 提示，不 invalidate（保留旧值避免抖动）
+
+#### 11.4.3 配图网格
+
+`_MediaGrid` 组件：
+- 单张：全宽 200px 高度
+- 多张：3 列网格，最多显示 3 张，剩余显示 `+N` 角标（黑底白字）
+- 缩略用 `CachedImage`（带 placeholder + errorWidget）
+
+### 11.5 第九批新增 API 端点对照
+
+| 端点 | 桌面端 | 移动端（第九批新增） |
+|------|--------|---------------------|
+| `GET /posts` | ✅ `AppInfoReq` | ✅ 第五批 |
+| `GET /posts/{id}` | ❌ 未实现 | ✅ 第九批 |
+| `GET /posts/{id}/comments` | ✅ `AppCommentInfoReq` | ✅ 第五批 |
+| `POST /comments` | ✅ `AppSendCommentInfoReq` | ✅ 第五批 |
+| `PUT /comments/{id}/like` | ✅ `AppCommentLikeReq` | ✅ 第五批 |
+| `PUT /posts/{id}/like` | ❌ 未实现 | ✅ 第九批（新增） |
+
+### 11.6 编译状态
+
+- `dart analyze lib/` → **0 errors, 0 warnings**（185 info-level lints 全部为既有 `prefer_const_constructors` / `withOpacity` / `use_build_context_synchronously` 等风格提示，零新增 lint 概念上的违规）
+- `flutter build apk --debug` → 本地环境无完整 Android NDK（`sqlite3_flutter_libs` C++ 编译需要 CMake/NDK 工具链），依赖 CI 验证
+
+### 11.7 第九批新增/修改文件清单
+
+| 文件 | 状态 | 行数变化 |
+|------|------|---------|
+| `lib/features/friend/data/friend_repository.dart` | 修改 | 119 → 172 (+53) |
+| `lib/features/friend/presentation/friend_post_detail_screen.dart` | 重构 | 313 → 632 (+319) |
+| `MIGRATION_REPORT.md` | 修改 | +115 行（新增第十一节） |
+| **合计** | — | **+487 行** |
+
+### 11.8 依赖
+
+无新增。复用既有 `cached_network_image` / `flutter_riverpod` / `dio` / `cached_image.dart`。
+
+---
+
+## 十二、迁移里程碑（更新）
+
+| 批次 | 日期 | 主要内容 | 累计文件数 |
+|-----|------|---------|----------|
+| 0 | 2026-05-29 | P0 + P1 全量迁移 | 27 |
+| 1 | 2026-06-02 | 骑士榜 / Pica 号解析 / 网络测速 | 33 |
+| 2 | 2026-06-03 | 搜索热词 / 历史 UI / 相关推荐 / 个人中心 / 签到 / 我的评论 | 35 |
+| 3 | 2026-06-04 | 修改密码 / 忘记密码 / 头像 / 称号 / 高级搜索 / 阅读器多模式 | 38 |
+| 4 | 2026-06-05 | 游戏区（列表/详情/评论） | 43 |
+| 5 | 2026-06-06 | 聊天 / 好友 / 批量搜索 / 屏蔽词（持久化） | 55 |
+| 6 | 2026-06-10 | 屏蔽词运行时接入 / NAS 本地阅读起步 | 57 |
+| 7 | 2026-06-12 | NAS 文件浏览器 / 本地图片阅读器（单页+条状双模式） | 58 |
+| 8 | 2026-06-14 | 帮助 / 关于页 / 下载章节导出 ZIP+系统分享 | 61 |
+| **9** | **2026-06-16** | **好友动态详情页补全 + 动态点赞 + 下拉刷新** | **61（修改 2）** |
+| 合计 | — | 累计 9 个批次，0 errors | — |
+
+### 仍未迁移（可选 / 性能敏感 / 服务端依赖）
+
+| 功能 | 桌面端位置 | 状态 |
+|------|-----------|------|
+| **NAS 远端协议** (SFTP / WebDAV / SMB) | `view/nas/nas_view.py` + `nas_db.py` + `nas_add_view.py` | 🟡 第七批已落地本地沙箱 / 外部存储文件浏览器 + 本地图片阅读器；远端协议需第三方包 `dartssh2` / `webdav_client` / `dart_smbclient` |
+| **Waifu2x 图片放大** | `view/setting/setting_view.py` + `task/task_waifu2x.py` | 🟡 性能敏感（NCNN 集成），需服务端代理 / 客户端推理二选一 |
+| **convert 转 EPUB** | `view/convert/convert_view.py` + `task/task_convert_epub.py` | 🟡 桌面端为 `return` stub（未实现）；Dart 端 `epubx` 等价库待评估 |
+| **动态发布 / 关注 / @提及** | 桌面端未实现 | 🟢 第九批补全详情页 + 点赞，发布 / 关注 / @提及 仍待评估 |
