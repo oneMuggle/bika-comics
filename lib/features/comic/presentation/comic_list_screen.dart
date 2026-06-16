@@ -7,6 +7,7 @@ import '../../../shared/widgets/comic_card.dart';
 import '../data/forbid_words_filter_helper.dart';
 import '../domain/comic_model.dart';
 import 'comic_detail_screen.dart';
+import '../../history/presentation/history_screen.dart';
 
 /// 漫画列表 Provider
 final comicListProvider = FutureProvider.family<List<Comic>, int>((ref, page) async {
@@ -105,7 +106,10 @@ class _ComicListScreenState extends ConsumerState<ComicListScreen> {
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: () {
-              // TODO: 跳转阅读历史
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HistoryScreen()),
+              );
             },
           ),
         ],
