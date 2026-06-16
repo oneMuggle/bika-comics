@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../shared/constants/api_constants.dart';
@@ -192,11 +193,15 @@ class ComicDetailScreen extends ConsumerWidget {
       actions: [
         IconButton(
           icon: const Icon(Icons.share),
-          onPressed: () {},
-        ),
-        IconButton(
-          icon: const Icon(Icons.favorite_border),
-          onPressed: () {},
+          tooltip: '分享',
+          onPressed: () {
+            Share.share(
+              '${comic.title}\n'
+              '${comic.description.isNotEmpty ? comic.description + "\n" : ""}'
+              'https://picacomic.com/comic/${comic.id}',
+              subject: comic.title,
+            );
+          },
         ),
       ],
     );
