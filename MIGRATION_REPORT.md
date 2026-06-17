@@ -1,8 +1,8 @@
 # 哔咔漫画 桌面端→移动端 迁移分析报告
 
-> 更新日期：2026-06-16
-> 状态：**P0 / P1 / P2 全部完成**；第七批起新增 **NAS 文件浏览器 / 本地图片阅读器**；**第八批**新增 **帮助 / 关于页** + **下载章节导出 / 分享**；**第九批**补全 **好友动态详情页 + 动态点赞**
-> 累计迁移：9 个批次，**62+ 个 Dart 文件**，P0/P1/P2 100% 覆盖。
+> 更新日期：2026-06-18
+> 状态：**P0 / P1 / P2 + 弃用 API 现代化 全部完成**；累计 **10 个批次**，**62+ 个 Dart 文件**，**0 errors / 0 warnings**。
+> 第十批为「弃用 API 迁移」：`Color.withOpacity` → `Color.withValues`（Flutter 3.27+ 已支持，CI 兼容）。
 
 ---
 
@@ -815,7 +815,8 @@ Future<void> _togglePostLike(FriendPost post) async {
 | 7 | 2026-06-12 | NAS 文件浏览器 / 本地图片阅读器（单页+条状双模式） | 58 |
 | 8 | 2026-06-14 | 帮助 / 关于页 / 下载章节导出 ZIP+系统分享 | 61 |
 | **9** | **2026-06-16** | **好友动态详情页补全 + 动态点赞 + 下拉刷新** | **61（修改 2）** |
-| 合计 | — | 累计 9 个批次，0 errors | — |
+| **10** | **2026-06-18** | **弃用 API 现代化：`withOpacity` → `withValues`（8 处）** | **61（修改 7）** |
+| 合计 | — | 累计 10 个批次，0 errors | — |
 
 ### 仍未迁移（可选 / 性能敏感 / 服务端依赖）
 
@@ -825,3 +826,53 @@ Future<void> _togglePostLike(FriendPost post) async {
 | **Waifu2x 图片放大** | `view/setting/setting_view.py` + `task/task_waifu2x.py` | 🟡 性能敏感（NCNN 集成），需服务端代理 / 客户端推理二选一 |
 | **convert 转 EPUB** | `view/convert/convert_view.py` + `task/task_convert_epub.py` | 🟡 桌面端为 `return` stub（未实现）；Dart 端 `epubx` 等价库待评估 |
 | **动态发布 / 关注 / @提及** | 桌面端未实现 | 🟢 第九批补全详情页 + 点赞，发布 / 关注 / @提及 仍待评估 |
+| **弃用 `Radio.groupValue` / `onChanged`** | N/A（Flutter 3.32+ 弃用） | 🟡 **第十批未迁移**：需要 RadioGroup 祖先 API，CI 当前 Flutter 3.27.4 尚未支持，待 CI 升级到 3.32+ 再批量改写 |
+
+---
+
+## 十三、本次（第十批）新增迁移 — 弃用 API 现代化
+
+### 13.1 缺口分析
+
+`dart analyze lib/` 显示 12 处 `deprecated_member_use`：
+
+| API | 弃用版本 | 数量 | 文件 |
+|-----|---------|------|------|
+| `Color.withOpacity(double)` | Flutter 3.27+ | 8 | 7 个文件（骑士榜、Pica 号解析、下载、导出、帮助、设置 — 速度测试） |
+| `RadioListTile.groupValue` / `onChanged` | Flutter 3.32+ | 4 | `settings_screen.dart`（代理类型 + 主题） |
+
+### 13.2 本批完成：`withOpacity` → `withValues`（8 处）
+
+`Color.withValues(alpha: x)` 是 Flutter 3.27 引入的现代等价 API，避免 `withOpacity` 内部的 `int → double` 精度损失。CI 当前 Flutter 3.27.4 已内置支持，零风险。
+
+**改动文件清单（7 个）**：
+
+| 文件 | 行 | 改动 |
+|------|-----|------|
+| `lib/features/comic/presentation/knight_rank_screen.dart` | 142, 205 | 称号背景 / 默认颜色 |
+| `lib/features/comic/presentation/pica_share_resolver_screen.dart` | 113, 116 | 解析结果卡背景 / 边框 |
+| `lib/features/download/presentation/download_screen.dart` | 818 | 操作按钮背景色 |
+| `lib/features/export/presentation/export_screen.dart` | 242 | 章节图标背景 |
+| `lib/features/help/presentation/help_screen.dart` | 201 | 关于页渐变色 |
+| `lib/features/settings/presentation/speed_test_screen.dart` | 38 | 测速页主图标色 |
+| **合计** | — | **8 处替换** |
+
+### 13.3 本批跳过：`Radio` → `RadioGroup`（4 处）
+
+**未迁移**，原因：
+
+- `RadioGroup` 是 Flutter **3.32+** 引入的 API
+- 当前 CI 配置 `subosito/flutter-action@v2` 的 `flutter-version: '3.27.4'`
+- 升级 CI 风险大于收益（其他第三方包可能不兼容 3.32+）
+
+**后续路径**：当 CI 升级到 3.32+ 后，将 `RadioListTile<T>(value, groupValue, onChanged)` 重写为 `RadioGroup<T>(groupValue, onChanged, child: [...])` 模式，4 处一次性改完。
+
+### 13.4 编译状态
+
+- `dart analyze lib/` → **0 errors, 0 warnings**（178 info-level lints，**从 186 下降到 178，-8**，全部为既有 `prefer_const_constructors` / `use_build_context_synchronously` 等风格提示）
+- 所有 `withOpacity` 弃用警告已消除
+- 唯一剩余的 `deprecated_member_use` 是 4 处 `Radio`（CI 版本限制）
+
+### 13.5 依赖
+
+无新增。纯 API 替换。

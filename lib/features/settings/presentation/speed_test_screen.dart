@@ -35,7 +35,7 @@ class SpeedTestScreen extends ConsumerWidget {
               Icon(
                 Icons.network_check,
                 size: 64,
-                color: AppColors.primary.withOpacity(0.6),
+                color: AppColors.primary.withValues(alpha: 0.6),
               ),
               const SizedBox(height: 24),
               asyncResult.when(

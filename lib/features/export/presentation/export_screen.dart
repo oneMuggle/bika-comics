@@ -239,7 +239,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       elevation: 1,
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: AppColors.primary.withOpacity(0.1),
+          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
           child: Icon(Icons.collections_bookmark_outlined,
               color: AppColors.primary),
         ),

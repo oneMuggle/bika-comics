@@ -110,10 +110,10 @@ class _PicaShareResolverScreenState
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.08),
+                    color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color: AppColors.primary.withOpacity(0.3), width: 1),
+                        color: AppColors.primary.withValues(alpha: 0.3), width: 1),
                   ),
                   child: Row(
                     children: [

@@ -139,7 +139,7 @@ class _KnightCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.15),
+                            color: AppColors.primary.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -202,7 +202,7 @@ class _KnightCard extends StatelessWidget {
       case 3:
         return Colors.brown.shade300;
       default:
-        return AppColors.primary.withOpacity(0.7);
+        return AppColors.primary.withValues(alpha: 0.7);
     }
   }
 }
