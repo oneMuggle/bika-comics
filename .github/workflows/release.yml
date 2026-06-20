@@ -15,17 +15,22 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Wait for artifact availability
-        run: sleep 30
+        # GitHub Actions 在 workflow_run 场景下, artifacts 有最终一致性延迟
+        # 60s 是社区推荐的稳妥值
+        run: sleep 60
         shell: bash
 
-      - name: Download Release APK
-        uses: actions/download-artifact@v4
-        with:
-          name: picacg-release-apk
-          workflow_id: ${{ github.event.workflow.id }}
-          run-id: ${{ github.event.workflow_run.id }}
-          path: .
-          if-no-artifacts-found: error
+      - name: Download Release APK via gh CLI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh run download \
+            --repo "${{ github.repository }}" \
+            --run-id "${{ github.event.workflow_run.id }}" \
+            --name "picacg-release-apk" \
+            --dir .
+          ls -la
+          ls -la app-release.apk 2>/dev/null || find . -name "*.apk" -ls
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
