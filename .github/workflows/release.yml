@@ -14,6 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
+      - name: Wait for artifact availability
+        run: sleep 30
+        shell: bash
+
       - name: Download Release APK
         uses: actions/download-artifact@v4
         with:
@@ -21,6 +25,7 @@ jobs:
           workflow_id: ${{ github.event.workflow.id }}
           run-id: ${{ github.event.workflow_run.id }}
           path: .
+          if-no-artifacts-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
