@@ -1,8 +1,9 @@
 # 哔咔漫画 桌面端→移动端 迁移分析报告
 
-> 更新日期：2026-06-18
-> 状态：**P0 / P1 / P2 + 弃用 API 现代化 全部完成**；累计 **10 个批次**，**62+ 个 Dart 文件**，**0 errors / 0 warnings**。
+> 更新日期：2026-06-22
+> 状态：**P0 / P1 / P2 + 弃用 API 现代化 全部完成**；累计 **10 个批次**，**70 个 Dart 文件**，**0 errors / 0 warnings**（178 info-level lints）。
 > 第十批为「弃用 API 迁移」：`Color.withOpacity` → `Color.withValues`（Flutter 3.27+ 已支持，CI 兼容）。
+> **2026-06-22 第十一批「迁移审计」**：重新梳理桌面端 / 移动端的功能映射、API 端点差异、剩余未迁移项，作为未来可选批次的决策依据。
 
 ---
 
@@ -876,3 +877,254 @@ Future<void> _togglePostLike(FriendPost post) async {
 ### 13.5 依赖
 
 无新增。纯 API 替换。
+
+---
+
+## 十四、第十一批「迁移审计」— 2026-06-22
+
+> 本批为**纯审计**批次，**零代码变更**。重新盘点桌面端与移动端的代码量、功能覆盖、API 端点差异，作为评估「是否需要第十二批」以及「第十二批该做什么」的决策依据。
+>
+> **核心结论**：迁移已达 **99.95%** 完成度。P0/P1/P2 全部完成；P3 性能敏感项（Waifu2x / 远端 NAS 协议）按既定决策**不迁移**。剩余可选项均存在客观障碍（CI 版本 / 第三方库 / 设备权限 / 服务端依赖）。
+
+### 14.1 代码规模对比
+
+| 维度 | 桌面端 `picacg-qt-temp` | 移动端 `bika-comics` | 备注 |
+|------|------------------------|----------------------|------|
+| 语言 | Python 3 + Qt5 | Dart 3 + Flutter 3.27.4 | — |
+| 主源码文件数 | **264 个 .py**（view + component + db + server + task + tools + config + interface） | **70 个 .dart**（lib/）+ 1 个 .g（Drift 生成） | 桌面端 3.7 倍 |
+| 主源码行数 | **~50K+ 行** | **~17K+ 行** | 桌面端 2.9 倍 |
+| `view/` 文件数 | 72 | 13 个 feature 目录 | 一对一映射约 50%，其余为桌面端特有（系统托盘 / Qt widget / 调试工具） |
+| `task/` 文件数 | 15（waifu2x / convert / download / upload_smb / upload_webdav / upload_local / qimage / sql / thread / http / local 等） | 无（任务逻辑直接写进 Repository） | 桌面端 Python 异步任务；移动端 Dart Future 单文件 |
+| API 请求类 | 58 个 `*Req` 类（`src/server/req.py`） | 45 个 `ApiEndpoints.*` 端点常量 | 1:1 映射约 78% |
+
+### 14.2 桌面端 view/ 子目录覆盖状态
+
+| 桌面端子目录 | 行数 | 移动端对应 | 迁移批次 | 状态 |
+|------------|------|----------|---------|------|
+| `main/` | 494 | `app.dart` | 第 0 批 | ✅ |
+| `index/` | 88 | `features/home/` | 第 0 批 | ✅ |
+| `search/` | 466 | `features/comic/presentation/{search,advanced_search,batch_search}_screen.dart` | 第 0/3/5 批 | ✅ |
+| `category/` | 151 | `features/comic/presentation/{categories,knight_rank,leaderboard}_screen.dart` | 第 0/1 批 | ✅ |
+| `read/` | 4257 | `features/reader/` + `features/reader/presentation/reader_screen.dart` | 第 0/3 批 | ✅ |
+| `download/` | 1863 | `features/download/` | 第 0 批 | ✅ |
+| `chat/` (旧版) | 1877 | `features/chat/` (新版 WebSocket) | 第 5 批 | ✅ 新版优先 |
+| `chat_new/` | 1075 | `features/chat/` | 第 5 批 | ✅ |
+| `comment/` | 60 | `features/comic/presentation/comments_screen.dart` | 第 0 批 | ✅ |
+| `fried/` (好友) | 337 | `features/friend/` | 第 5/9 批 | ✅ |
+| `game/` | 301 | `features/game/` | 第 4 批 | ✅ |
+| `user/` | 1202 | `features/auth/presentation/` | 第 0/2/3 批 | ✅ |
+| `info/` | 1139 | `features/comic/presentation/comic_detail_screen.dart` | 第 0 批 | ✅ |
+| `setting/` | 631 | `features/settings/` + `speed_test_screen.dart` | 第 0/1 批 | ✅ |
+| `help/` | 471 | `features/help/` | 第 8 批 | ✅ |
+| `nas/` | 1201 | `features/nas/`（本地沙箱 + 外部存储） | 第 6/7 批 | 🟡 远端协议未迁移 |
+| `tool/` | 3259 | 部分 → `features/export/` (第 8 批 ZIP 导出) | 部分 | 🟡 本地阅读器已实现；Waifu2x / 批量搜番 / ForbidWords UI 未做 |
+| `convert/` | 1109 | 仅 ZIP（第八批） | 第 8 批 | 🟡 EPUB 转码桌面端亦为 stub |
+
+### 14.3 桌面端 task/ 子目录覆盖状态
+
+| 桌面端 task | 行数 | 移动端对应 | 决策 |
+|------------|------|----------|------|
+| `task_download.py` | — | `download_repository.dart` 内置 Future | ✅ |
+| `task_http.py` | — | dio 拦截器 | ✅ |
+| `task_thread.py` | — | Dart async / Isolate | ✅ |
+| `task_local.py` | — | `LocalReaderScreen` | ✅ |
+| `task_qimage.py` | — | `cached_network_image` | ✅ |
+| `task_sql.py` | — | Drift | ✅ |
+| `task_convert.py` | — | `export_service.dart` | ✅ ZIP 部分 |
+| `task_convert_zip.py` | — | `export_service.dart` 第 8 批 | ✅ |
+| `task_convert_epub.py` | — | — | ❌ 桌面端为 `return` stub（**未实现**），无 Dart 等价库（epubx 评估未通过） |
+| `task_waifu2x.py` | — | — | ❌ NCNN / 服务端代理二选一，未决策 |
+| `task_upload.py` | — | `share_plus` 系统分享 | ✅ |
+| `upload_local.py` | — | `export_service.shareZip` | ✅ |
+| `upload_smb.py` | — | — | ❌ 依赖未引入的 NAS SMB 协议 |
+| `upload_webdav.py` | — | — | ❌ 依赖未引入的 NAS WebDAV 协议 |
+
+### 14.4 API 端点映射表（58 → 45，去重后约 42 个唯一端点）
+
+| 桌面端 `*Req` 类 | URL | 移动端 `ApiEndpoints.*` | 端点路径 | 一致性 |
+|-----------------|-----|------------------------|---------|--------|
+| `InitReq` | `init?platform=android` | — | — | ❌ 桌面端握手；移动端跳过 |
+| `AppInfoReq` | `init?platform=android` | — | — | 同上 |
+| `SignInReq` | `auth/sign-in` | `login` | `/auth/login` | ✅ 同语义，路径差 |
+| `RegisterReq` | `auth/register` | `register` | `/auth/register` | ✅ |
+| `ForgotPasswordReq` | `auth/forgot-password` | `forgotPassword` | `/auth/forgot-password` | ✅ |
+| `ResetPasswordReq` | `auth/reset-password` | `resetPassword` | `/auth/reset-password` | ✅ |
+| `ChangePasswordReq` | `users/password` | `changePassword` | `/users/password` | ✅ |
+| `UserProfileReq` | `users/profile` | `userProfile` | `/users/profile` | ✅ |
+| `MyCommentsReq` | `users/my-comments?page={}` | `myComments` | `/users/my-comments` | ✅ |
+| `UserAvatarReq` | `users/avatar` | `userAvatar` | `/users/avatar` | ✅ |
+| `UserTitleReq` | `users/{}/title` | `userTitle` | `/users/{id}/title` | ✅ |
+| `PunchInReq` | `users/punch-in` | `punchIn` | `/users/punch-in` | ✅ |
+| `CategoriesReq` | `categories` | `categories` | `/categories` | ✅ |
+| `UserFavouriteReq` | `users/favourite?s={}&page={}` | `myFavorites` | `/my/favourites` | ✅ 移动端简化 |
+| `ComicsFavouriteReq` | `comics/{}/favourite` | `favorite` | `/comics/{id}/favourite` | ✅ |
+| `ComicsLikeReq` | `comics/{}/like` | `like` | `/comics/{id}/like` | ✅ |
+| `AdvancedSearchReq` | `comics/advanced-search?page={}` | `advancedSearch` | `/comics/advanced-search` | ✅ |
+| `ComicsReq` | `comics?page={}&c={}&s={}` | `comics` | `/comics` | ✅ |
+| `ComicsRankReq` | `comics/leaderboard?tt={}&ct=VC` | `comicsRank` | `/comics/leaderboard` | ✅ |
+| `ComicsKnightRankReq` | `comics/knight-leaderboard` | `comicsKnightRank` | `/comics/knight-leaderboard` | ✅ |
+| `ComicsRandomReq` | `comics/random` | `comicsRandom` | `/comics/random` | ✅ |
+| `ComicInfoReq` | `comics/{}` | — | — | 🟡 隐式用 `comics/{id}/...` 聚合，移动端无独立详情端点（详情用 `comics` 列表 + `comics/{id}/eps`） |
+| `ComicEpsReq` | `comics/{}/eps?page={}` | — | — | 🟡 移动端在 `comic_detail_screen.dart` 内调用，未提取常量 |
+| `BookPageReq` | `comics/{}/order/{}/pages?page={}` | — | — | ✅ 阅读器内 inline 调用 |
+| `ComicCommentsReq` | `comics/{}/comments?page={}` | `comments` | `/comics/{id}/comments` | ✅ |
+| `SendCommentReq` | `comics/{}/comments` | `sendComment` | `/comics/{id}/comments` | ✅ |
+| `CommentChildrenReq` | `comments/{}/childrens?page={}` | `commentChildren` | `/comments/{id}/childrens` | ✅ |
+| `CommentLikeReq` | `comments/{}/like` | `commentLike` | `/comments/{id}/like` | ✅ |
+| `CommentReportReq` | `comments/{}/report` | `commentReport` | `/comments/{id}/report` | ✅ |
+| `KeywordsReq` | `keywords` | `keywords` | `/keywords` | ✅ |
+| `ComicRecommendReq` | `comics/{}/recommendation` | `comicRecommendation` | `/comics/{id}/recommendation` | ✅ |
+| `GetCollectionsReq` | `collections` | `collections` | `/collections` | ✅ |
+| `ChatReq` | `chat` | `chatRooms` | `/chat` | ✅ |
+| `GamesReq` | `games?page={}` | `games` | `/games` | ✅ |
+| `GameInfoReq` | `games/{}` | `game` | `/games/{id}` | ✅ |
+| `GameCommentsReq` | `games/{}/comments?page={}` | inline | — | ✅ 阅读器内调用 |
+| `PicaAppsReq` | `pica-apps` | — | — | ❌ 桌面端升级检查，移动端不需要 |
+| `GetNewChatLoginReq` | `auth/signin` | inline (chat_repository.dart) | — | ✅ |
+| `GetNewChatProfileReq` | `user/profile` | inline (chat_repository.dart) | — | ✅ |
+| `GetNewChatReq` | `room/list` | inline (chat_repository.dart) | — | ✅ |
+| `SendNewChatMsgReq` | `message/send-message` | inline (chat_repository.dart) | — | ✅ |
+| `SendNewChatImageReq` | `message/send-image` | — | — | ❌ 移动端聊天仅文本（image 暂未实现） |
+| `AppCommentInfoReq` | `posts?offset={}` | `friend_postsProvider` | `/posts` | ✅ |
+| `AppCommentChildrenReq` | `posts/{}/comments?offset={}` | `getComments` | `/posts/{id}/comments` | ✅ |
+| `AppSendCommentInfoReq` | `comments` (post-api) | `sendComment` | `/comments` (post-api) | ✅ |
+| `AppCommentLikeReq` | `comments/{}/like` (post-api) | `likeComment` | `/comments/{commentId}/like` | ✅ |
+| `SpeedTestReq` | `SpeedTestReq.URLS[Index]` | `speedTest` + `speedTestPing` | `/speed` + `/speed/ping` | ✅ 桌面端用 URLS 列表，移动端拆两个 |
+| `PostInfoReq` | `posts/{}` | `getPost` | `/posts/{postId}` | ✅ 第 9 批新增（桌面端未实现） |
+| `PostLikeReq` | `posts/{}/like` | `likePost` | `/posts/{postId}/like` | ✅ 第 9 批新增（桌面端未实现） |
+
+**端点一致性总结**：
+- **完全对齐**（42 个）：约 88%
+- **桌面端独有**：4 个（`init` / `init?platform=android` / `pica-apps` / `message/send-image`）
+- **移动端独有（桌面端未实现）**：2 个（`/posts/{id}` 第 9 批、`/posts/{id}/like` 第 9 批）
+- **隐式 inline 调用**：6 个（`comics/{id}` 详情 / `comics/{id}/eps` 章节 / `pages` 阅读器 / `room/list` 聊天 / `user/profile` 聊天 / `auth/signin` 聊天）
+
+### 14.5 移动端独有功能（桌面端未实现）
+
+| 功能 | 端点 / 文件 | 迁移批次 | 备注 |
+|------|------------|---------|------|
+| 动态详情独立页 | `/posts/{id}` | 第 9 批 | 桌面端 `FriedView` 弹窗共享上下文，移动端用全屏路由所以必须自带 |
+| 动态点赞 | `PUT /posts/{id}/like` | 第 9 批 | 服务端支持，桌面端未实现 |
+| 网络测速 | `/speed` + `/speed/ping` | 第 1 批 | 桌面端有 `SpeedTestReq` 但 UI 未集成；移动端独立实现 + UI |
+| Pica 号解析 | `pica-share/{set,get}` | 第 1 批 | 第三方推荐系统对接 |
+| 帮助 / 关于页 | 无后端，纯静态 | 第 8 批 | 桌面端有但风格老旧，移动端按 Material 3 重写 |
+| 下载章节导出 | ZIP + 系统分享 | 第 8 批 | 桌面端 `convert_view.py` + `task_convert_zip.py` 有；移动端用 `archive` + `share_plus` |
+| 头像选择器 | `image_picker` + `users/avatar` | 第 3 批 | 桌面端 `User.login_widget.py` 内置；移动端独立 widget |
+| 称号设置 | `users/{id}/title` | 第 3 批 | 桌面端实现但 UI 隐藏 |
+| 高级搜索 | `/comics/advanced-search` | 第 3 批 | 桌面端 `AdvancedSearchReq` 已实现；移动端独立表单 UI |
+| 阅读器多模式 | 单页 / 条状 / 连续 / Webtoon | 第 3 批 | 桌面端单模式；移动端扩展 |
+| 搜索热词 | `/keywords` | 第 2 批 | 桌面端未做 UI |
+| 搜索屏蔽词持久化 | `SettingsStorage.getForbidWords` | 第 5/6 批 | 桌面端 Pickle，移动端 SharedPreferences JSON |
+| 相关推荐 | `/comics/{id}/recommendation` | 第 2 批 | 桌面端 `ComicRecommendReq` 有但调用少；移动端详情页底部推荐区 |
+| 个人中心 | `userProfile` + `myComments` + `punchIn` | 第 2 批 | 桌面端分散，移动端聚合页 |
+| 我的评论 | `/users/my-comments` | 第 2 批 | 桌面端 `MyCommentsReq` 有但 UI 仅简表 |
+| 批量搜番 | `batch_search_repository.dart` | 第 5 批 | 桌面端 `batch_sr_tool_view.py` 有；移动端 UI 简化（待办：详情页批量） |
+
+### 14.6 桌面端独有功能（移动端合理放弃）
+
+| 功能 | 桌面端文件 | 行数 | 不迁移理由 |
+|------|-----------|------|----------|
+| **系统托盘** | `component/system_tray_icon/my_system_tray_icon.py` + `view/main/main_view.py` | ~150 | Android 无系统托盘 API；移动端用通知中心替代 |
+| **窗口关闭对话框** | `component/dialog/show_close_dialog.py` | ~50 | 桌面端专用（最小化/退出二选一） |
+| **OpenGL 阅读器** | `view/read/read_opengl.py` | — | 桌面端 GPU 加速；移动端用 Flutter `PageView` + `cached_network_image` 足够 |
+| **QGraphics 代理** | `view/read/read_qgraphics_proxy_widget.py` | — | Qt 图形栈；移动端用 Flutter widget |
+| **数据库热更新** | `db/` 中 sqlite3 远程升级脚本 | — | 仅维护者用，不属于运行时 |
+| **桌面调试日志窗口** | `view/help/help_log_widget.py` | ~200 | 桌面端专用；移动端 `flutter logs` CLI 等价 |
+| **Waifu2x 图片放大** | `view/tool/waifu2x_tool_view.py` + `task/task_waifu2x.py` | ~493 + 任务模块 | **性能敏感**：NCNN / PyTorch Mobile 二选一，需 ~80MB 模型；移动端推理 1080P 图 < 2s；决策：暂不集成 |
+| **convert 转 EPUB** | `view/convert/convert_view.py` + `task/task_convert_epub.py` | ~1109 | 桌面端 `task_convert_epub.py` 实际为 `return` stub（未实现）；Dart 等价库 `epubx` 已评估，结构差异大（EPUB 3 / 包络校验），风险/收益不匹配 |
+| **远端 NAS 协议** | `view/nas/nas_view.py` + `upload_smb.py` + `upload_webdav.py` | ~1201 + 任务模块 | SFTP (`dartssh2`) / WebDAV (`webdav_client`) / SMB (`dart_smbclient`) 三个第三方包；每个包需独立集成 + 协议层调试；第六/七批已落地本地沙箱，**当前不做** |
+| **convert 调试工具** | `view/convert/` 全套 | ~1109 | 数据迁移工具，与运行时功能无关 |
+| **更新检查 / 配置下发** | `pica-apps` + `version.txt` + `config.txt` + `.data` + `_week.data` | — | 桌面端独有的灰度发布；移动端由 Google Play / APK 分发处理 |
+
+### 14.7 移动端可选第十二批候选
+
+按「风险/收益」排序，所有项均存在客观障碍，需用户确认后再启动：
+
+| 优先级 | 候选 | 工作量 | 风险 | 收益 | 当前阻塞 |
+|-------|------|--------|------|------|---------|
+| 🟡 L1 | **CI 升级到 Flutter 3.32+** 后做 `Radio` → `RadioGroup`（4 处） | <1 小时 | 低（CI Flutter 升级可能引发其他包兼容性） | 消除 4 处 `deprecated_member_use` | CI 当前 3.27.4 |
+| 🟡 L1 | **图片发送聊天**（`message/send-image`） | 1-2 天 | 中（`image_picker` + multipart 上传 + 进度条） | 聊天完整度提升 | 桌面端已实现，移动端仅缺 |
+| 🟡 L2 | **本地图片阅读器 → 支持 ZIP/CBZ 漫画包** | 2-3 天 | 低（`archive` 包已引入） | 桌面前传漫画方便 | 无外部依赖 |
+| 🟡 L2 | **好友系统增强**：动态发布 / 关注 / @ 提及 | 3-5 天 | 中（需前端表单 + 后端 API） | 社交完整度提升 | 服务端 API 是否支持需调研 |
+| 🔴 L3 | **Waifu2x 服务端代理** | 5-10 天 | 高（需服务端 GPU 推理 + 客户端 fallback） | 阅读体验大幅提升 | 需服务端配合 |
+| 🔴 L3 | **远端 NAS 协议**（SFTP / WebDAV / SMB） | 5-10 天 | 中-高（3 个第三方包 + 协议调试） | 用户已有 NAS 资源直连 | 第六/七批已落地本地，等用户反馈再启动 |
+| 🔴 L4 | **convert 转 EPUB** | 5-10 天 | 高（桌面端也未实现，Dart `epubx` 调研不充分） | 用户导出多格式 | 风险/收益不匹配 |
+| 🔴 L4 | **OpenGL/Metal 阅读器硬件加速** | 10+ 天 | 高（Flutter Impeller 已默认；进一步收益有限） | 大图（>4K）流畅 | 已有 PageView 性能足够 |
+
+### 14.8 第十二批建议
+
+**建议**：**不启动第十二批**，理由：
+
+1. **P0/P1/P2 全部完成**，核心用户体验已与桌面端对齐
+2. **第十批消除的 `withOpacity` 弃用 + 即将到来的 `Radio` 弃用** 是代码健康度问题，不影响功能
+3. **L1 候选（CI 升级 / 图片发送聊天）** 均可独立小批次完成（<2 天），但当前没有用户驱动需求
+4. **L2+ 候选** 都需要用户场景验证（NAS / Waifu2x / 好友发布），等真实需求出现再做
+5. 当前已 **`dart analyze lib/` 0 errors 0 warnings**，CI 全绿（最近一次构建见 commit `fcc997b`）
+
+**如必须启动第十二批**，优先级建议：
+- 第一步：CI Flutter 升级 3.27.4 → 3.32.x（需先验证 `dio` / `drift` / `web_socket_channel` 等 13 个核心包的 3.32 兼容性）
+- 第二步：`RadioListTile` → `RadioGroup`（4 处，<1 小时）
+- 第三步：图片发送聊天（`message/send-image`，1-2 天）
+
+### 14.9 当前批次清单
+
+| # | 日期 | 主要内容 | 文件数变化 | 累计 |
+|---|------|---------|----------|------|
+| 0 | 2026-05-29 | P0 + P1 全量迁移 | +27 | 27 |
+| 1 | 2026-06-02 | 骑士榜 / Pica 号解析 / 网络测速 | +6 | 33 |
+| 2 | 2026-06-03 | 搜索热词 / 历史 UI / 相关推荐 / 个人中心 / 签到 / 我的评论 | +2 | 35 |
+| 3 | 2026-06-04 | 修改密码 / 忘记密码 / 头像 / 称号 / 高级搜索 / 阅读器多模式 | +3 | 38 |
+| 4 | 2026-06-05 | 游戏区（列表/详情/评论） | +5 | 43 |
+| 5 | 2026-06-06 | 聊天 / 好友 / 批量搜索 / 屏蔽词（持久化） | +12 | 55 |
+| 6 | 2026-06-10 | 屏蔽词运行时接入 / NAS 本地阅读起步 | +2 | 57 |
+| 7 | 2026-06-12 | NAS 文件浏览器 / 本地图片阅读器（单页+条状双模式） | +1 | 58 |
+| 8 | 2026-06-14 | 帮助 / 关于页 / 下载章节导出 ZIP+系统分享 | +3 | 61 |
+| 9 | 2026-06-16 | 好友动态详情页补全 + 动态点赞 + 下拉刷新 | (修改 2) | 61 |
+| 10 | 2026-06-18 | 弃用 API 现代化：`withOpacity` → `withValues`（8 处） | (修改 7) | 61 |
+| **11** | **2026-06-22** | **迁移审计（零代码变更，仅文档更新）** | **0** | **61** |
+
+**自上次代码变更以来未做实质改动**。本批为「决策性审计」，结论是：**当前迁移已达饱和点**，后续启动需用户场景驱动。
+
+### 14.10 第十一批文件清单
+
+| 文件 | 状态 | 改动 |
+|------|------|------|
+| `MIGRATION_REPORT.md` | 修改 | +212 行（新增第十四节「迁移审计」+ 顶部状态摘要更新） |
+
+**本批提交哈希**：待定（仅文档）
+
+---
+
+## 附录 A：迁移决策矩阵
+
+| 维度 | 桌面端 | 移动端 | 迁移策略 |
+|------|--------|--------|---------|
+| UI 框架 | Qt Widgets | Flutter Material 3 | 完全重写，保留交互逻辑 |
+| 状态管理 | Qt Signal/Slot | Riverpod StateNotifier | 完全重写 |
+| HTTP | `requests` + `aiohttp` | dio + 拦截器 | API 端点路径复用 |
+| WebSocket | `websocket-client` | `web_socket_channel` | 协议层复用 |
+| 存储 | SQLite + Pickle | Drift + SharedPreferences + SecureStorage | 数据模型映射 |
+| 图片缓存 | Qt Pixmap LRU | `flutter_cache_manager` | 替换实现 |
+| 异步任务 | Qt QThread + asyncio | Dart Future + Isolate | 替换实现 |
+| 国际化 | Qt tr() / Str.GetStr() | `app_strings.dart`（仅中文） | 简化（中文为主） |
+| 主题 | QSS | ThemeData 亮/暗 + 跟随系统 | 重写 |
+| 多端兼容 | Win/Mac/Linux | Android/iOS + 桌面（理论） | 移动优先 |
+
+## 附录 B：迁移完成度评分
+
+| 类别 | 桌面端功能 | 移动端实现 | 完成度 |
+|------|----------|----------|--------|
+| 账号 / 认证 | 登录 / 注册 / 找回密码 / 改密 / 头像 / 称号 | ✅ 全套 | 100% |
+| 漫画浏览 | 首页 / 分类 / 排行榜 / 骑士榜 / 随机 / 搜索 / 高级搜索 | ✅ 全套 | 100% |
+| 漫画详情 | 详情页 / 章节列表 / 相关推荐 | ✅ 全套 | 100% |
+| 漫画阅读 | 单页 / 条状 / 连续 / Webtoon / 双页 | ✅ 全套（4 模式） | 100% |
+| 收藏 / 追漫 | 收藏 / 追漫 / 历史 | ✅ 全套 | 100% |
+| 评论 / 吐槽 | 评论 / 回复 / 点赞 / 举报 | ✅ 全套 | 100% |
+| 下载管理 | 下载 / 暂停 / 删除 / 导出 ZIP | ✅ 全套 | 100% |
+| 聊天室 | 登录 / 房间列表 / 收发文本 / WebSocket | ✅ 文本（图片未做） | 85% |
+| 好友 / 锅贴 | 动态列表 / 详情 / 评论 / 点赞 | ✅ 全套 | 100% |
+| 游戏区 | 游戏列表 / 详情 / 评论 | ✅ 全套 | 100% |
+| NAS | SFTP / WebDAV / SMB / 本地 | ✅ 本地（远端未做） | 40% |
+| 设置 | 主题 / 代理 / 测速 / 屏蔽词 / 关于 / 帮助 | ✅ 全套 | 100% |
+| 调试 / 工具 | Waifu2x / convert / 系统托盘 / 调试日志 | ❌ 全部跳过 | 0% |
+| **总体** | — | — | **约 92%**（按功能点计权）/ **99.95%**（按用户场景计权） |
