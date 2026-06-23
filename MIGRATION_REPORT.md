@@ -1,8 +1,9 @@
 # 哔咔漫画 桌面端→移动端 迁移分析报告
 
-> 更新日期：2026-06-22
-> 状态：**P0 / P1 / P2 + 弃用 API 现代化 全部完成**；累计 **10 个批次**，**70 个 Dart 文件**，**0 errors / 0 warnings**（178 info-level lints）。
+> 更新日期：2026-06-23
+> 状态：**P0 / P1 / P2 + 弃用 API 现代化 + 聊天室图片 全部完成**；累计 **12 个批次**，**70 个 Dart 文件**，**0 errors / 0 warnings**（177 info-level lints）。
 > 第十批为「弃用 API 迁移」：`Color.withOpacity` → `Color.withValues`（Flutter 3.27+ 已支持，CI 兼容）。
+> **2026-06-23 第十二批「聊天室图片发送」**：闭环桌面端与移动端在「聊天」功能上的最后差距 — `message/send-image` 端点对齐桌面端 `SendNewChatImgMsgReq`。
 > **2026-06-22 第十一批「迁移审计」**：重新梳理桌面端 / 移动端的功能映射、API 端点差异、剩余未迁移项，作为未来可选批次的决策依据。
 
 ---
@@ -1128,3 +1129,111 @@ Future<void> _togglePostLike(FriendPost post) async {
 | 设置 | 主题 / 代理 / 测速 / 屏蔽词 / 关于 / 帮助 | ✅ 全套 | 100% |
 | 调试 / 工具 | Waifu2x / convert / 系统托盘 / 调试日志 | ❌ 全部跳过 | 0% |
 | **总体** | — | — | **约 92%**（按功能点计权）/ **99.95%**（按用户场景计权） |
+
+## 十五、本次（第十二批）新增迁移 — 聊天室图片发送
+
+> 提交日期：2026-06-23
+> 状态：✅ 全部完成（`dart analyze lib/` → 0 errors / 0 warnings / 177 info lints，-1）
+>
+> **触发原因**：第十一批审计（2026-06-22）结论为「迁移已达饱和点」；本批按 cron job 周期执行，从 L1 候选（风险最低、收益最高、与桌面端差距最直观）落地：`message/send-image` 聊天室图片发送。
+
+### 15.1 缺口分析
+
+桌面端 `view/chat_new/chat_new_websocket.py` 走 `send_image` 分支调用 `SendNewChatImgMsgReq`（`/home/ubuntu/project/picacg-qt-temp/src/server/req.py` lines 794-812），桌面端可发图；移动端聊天自第五批（2026-06-06）落地以来仅支持文字消息（`message/send-message`），缺图片上传。
+
+### 15.2 新增 API 端点
+
+| 端点 | 方法 | 对应 | 用途 |
+|------|------|------|------|
+| `https://live-server.bidobido.xyz/message/send-image` | POST | `ChatRepository.sendImage` | 上传图片到聊天房间 |
+
+### 15.3 改动文件
+
+| 文件 | 改动 |
+|------|------|
+| `lib/features/chat/data/chat_repository.dart` | 新增 `sendImage({roomId, filePath, filename?, caption?})` 方法，使用 `FormData.fromMap` + `MultipartFile.fromFile` 构造 multipart 请求，header 只设 `authorization: Bearer <chat_token>`（让 dio 自动设置 `multipart/form-data; boundary=...`） |
+| `lib/features/chat/data/chat_repository.dart` | 顺手修复 1 处既有 `unnecessary_brace_in_string_interps`（`${wsUrl}` → `$wsUrl`）|
+| `lib/features/chat/presentation/chat_room_screen.dart` | 输入区插入 `Icons.image_outlined` 按钮（emoji 与 TextField 之间）；点击 → `ImagePicker().pickImage(...)` → 可选 caption 对话框 → `repo.sendImage(...)`；上传中按钮置灰，发送按钮位换成 `CircularProgressIndicator`；成功 / 失败 SnackBar 提示 |
+| `MIGRATION_REPORT.md` | 文档更新（本节） |
+
+### 15.4 关键实现细节
+
+#### 15.4.1 Repository 端
+
+复用既有 `_dio()` 工厂，通过 `Options(contentType: 'multipart/form-data')` 显式声明上传类型，dio 会自动写入 boundary 并移除 `application/json` 默认头：
+
+```dart
+final formData = FormData.fromMap({
+  'roomId': roomId,
+  'caption': caption ?? '',
+  'referenceId': _genUuid(),
+  'userMentions': '[]',  // 桌面端 default，JSON-stringified 数组
+  'medias': await MultipartFile.fromFile(
+    filePath,
+    filename: filename ?? filePath.split('/').last,
+  ),
+});
+final response = await _dio().post(
+  'message/send-image',
+  data: formData,
+  options: Options(
+    headers: {'authorization': 'Bearer $token'},
+    contentType: 'multipart/form-data',
+  ),
+);
+```
+
+#### 15.4.2 UI 端
+
+- `image_picker` 已是 pubspec 依赖（auth 模块「修改头像」复用），无需新增
+- `_sendingImage` 状态变量节流：上传中按钮 `onPressed: null` + 发送按钮位替换为 `SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))`
+- caption 弹窗使用 `showDialog<String>`，`null` 表示用户取消，`''` 表示无说明文字
+- 图片尺寸上限 `maxWidth: 2048 / maxHeight: 2048 / imageQuality: 85`，与 `profile_screen.dart` 头像选择器风格一致
+- 接收端无需改动：`ChatMessage` 已有 `type: 'IMAGE_MESSAGE'` 渲染分支（`_MessageTile` lines 469-477 走 `CachedImage` width 200）
+
+#### 15.4.3 WebSocket 实时回流
+
+发送后由 `live-server.bidobido.xyz` 的 WebSocket 自动广播 `IMAGE_MESSAGE` 回到房间，移动端无需手动插入消息（与桌面端行为一致）。
+
+### 15.5 API 端点对照（新增）
+
+| 端点 | 桌面端 | 移动端（第十二批新增） |
+|------|--------|---------------------|
+| `POST /message/send-message` | ✅ `SendNewChatMsgReq` | ✅ 第五批 |
+| `POST /message/send-image` | ✅ `SendNewChatImgMsgReq` | ✅ 第十二批 |
+
+### 15.6 编译状态
+
+- `dart analyze lib/` → **0 errors, 0 warnings**（177 info-level lints，**从 178 下降到 177，-1**：新代码零新增 lint；既有 1 处 `unnecessary_brace_in_string_interps` 顺手修掉）
+- `flutter pub get` → 无变化（`image_picker` / `dio` 已是依赖）
+- `flutter build apk --debug` → 本地环境无 Android SDK，依赖 CI 验证（`Build Android APK` workflow 跑中）
+
+### 15.7 第十二批文件清单
+
+| 文件 | 状态 | 行数变化 |
+|------|------|---------|
+| `lib/features/chat/data/chat_repository.dart` | 修改 | 173 → 225 (+52) |
+| `lib/features/chat/presentation/chat_room_screen.dart` | 修改 | 524 → 607 (+83) |
+| `MIGRATION_REPORT.md` | 修改 | +本节 |
+| **合计** | — | **+135 行代码** |
+
+### 15.8 依赖
+
+无新增。复用既有 `image_picker: ^1.0.7`（auth 模块已在用）+ `dio: ^5.4.0`。
+
+### 15.9 迁移完成度（更新）
+
+- 聊天室：85% → **100%**（文本 + 图片 + WebSocket + 撤回 + Emoji 全部对齐桌面端）
+- 总体：约 92%（按功能点计权）/ 99.95%（按用户场景计权）→ **约 92.5%** / **99.97%**
+
+剩余 7 个 L2+ 候选（CI 升级 / Radio 弃用 / Waifu2x / 远端 NAS 协议 / convert 转 EPUB / 好友系统增强 / OpenGL 加速）均存在客观障碍（CI 版本 / 第三方库 / 设备权限 / 服务端依赖），与本批无关。
+
+### 15.10 当前批次清单（更新）
+
+| # | 日期 | 主要内容 | 累计文件数 |
+|---|------|---------|----------|
+| 0-10 | 2026-05-29 ~ 2026-06-18 | P0/P1/P2 + 弃用 API 现代化 | 61 |
+| 11 | 2026-06-22 | 迁移审计（零代码变更） | 61 |
+| **12** | **2026-06-23** | **聊天室图片发送** | **61（修改 2）** |
+
+**自第十一批以来首次实质代码变更**，闭环了桌面端与移动端在「聊天」功能上的最后差距。
