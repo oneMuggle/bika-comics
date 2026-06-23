@@ -1206,7 +1206,11 @@ final response = await _dio().post(
 
 - `dart analyze lib/` → **0 errors, 0 warnings**（177 info-level lints，**从 178 下降到 177，-1**：新代码零新增 lint；既有 1 处 `unnecessary_brace_in_string_interps` 顺手修掉）
 - `flutter pub get` → 无变化（`image_picker` / `dio` 已是依赖）
-- `flutter build apk --debug` → 本地环境无 Android SDK，依赖 CI 验证（`Build Android APK` workflow 跑中）
+- `flutter build apk --debug` → 本地环境无 Android SDK，依赖 CI 验证
+- **CI Build Android APK workflow**（commit `52b9ae8`，run `28046795610`）→ ✅ **completed / success**（耗时 6m 45s）— 本批代码变更通过 CI 编译验证
+- **CI Create GitHub Release workflow**（commit `52b9ae8`，run `28047192153`）→ ❌ failed（`Download Release APK via gh CLI` step 失败）
+
+> **说明**：release workflow 失败是 **GitHub Actions 平台限制**（`workflow_run` 触发的下游 workflow 无法可靠下载触发它的 workflow 的 artifact，audit 第 14.6 节已记录），与本批代码无关。`Build Android APK` 自身已通过，APK 产物已生成，发布渠道问题需要平台配合或架构调整（迁移 release 步骤到 build workflow 内部，使用 `softprops/action-gh-release@v2`）。
 
 ### 15.7 第十二批文件清单
 
