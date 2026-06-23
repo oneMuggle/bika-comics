@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -49,6 +50,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
   String? _replyToName;
   String? _replyToText;
   bool _showEmoji = false;
+  bool _sendingImage = false; // 第十二批：图片发送中（UI 节流）
   static const List<String> _emojis = [
     '😀', '😂', '🤣', '😊', '😍', '😘', '😎', '🤩',
     '😢', '😭', '😡', '😱', '🥺', '😴', '🤔', '🙄',
@@ -357,6 +359,12 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                         setState(() => _showEmoji = !_showEmoji),
                     tooltip: '表情',
                   ),
+                  // 第十二批：图片发送按钮
+                  IconButton(
+                    icon: const Icon(Icons.image_outlined),
+                    onPressed: _sendingImage ? null : _pickAndSendImage,
+                    tooltip: '发送图片',
+                  ),
                   Expanded(
                     child: TextField(
                       controller: _input,
@@ -374,10 +382,16 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: _send,
-                    child: const Text('发送'),
-                  ),
+                  _sendingImage
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : FilledButton(
+                          onPressed: _send,
+                          child: const Text('发送'),
+                        ),
                 ],
               ),
             ),
@@ -385,6 +399,86 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
         ],
       ),
     );
+  }
+
+  /// 第十二批：选择图片并发送
+  ///
+  /// 流程：image_picker 选图 → 可选 caption 对话框 → repository.sendImage
+  /// WebSocket 会自动广播 IMAGE_MESSAGE 回到房间，无需手动插入消息
+  Future<void> _pickAndSendImage() async {
+    if (_sendingImage) return;
+    final picker = ImagePicker();
+    final XFile? picked;
+    try {
+      picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        imageQuality: 85,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('选择图片失败: $e')),
+      );
+      return;
+    }
+    if (picked == null) return; // 用户取消
+    if (!mounted) return;
+
+    // 弹出可选 caption 对话框
+    final caption = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          title: const Text('发送图片'),
+          content: TextField(
+            controller: controller,
+            maxLines: 3,
+            minLines: 1,
+            decoration: const InputDecoration(
+              hintText: '可输入说明文字（可选）',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(null),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+              child: const Text('发送'),
+            ),
+          ],
+        );
+      },
+    );
+    // caption == null 表示用户取消；空字符串表示无说明
+    if (caption == null) return;
+    if (!mounted) return;
+
+    setState(() => _sendingImage = true);
+    try {
+      final repo = ref.read(chatRepositoryProvider);
+      await repo.sendImage(
+        roomId: widget.roomId,
+        filePath: picked.path,
+        filename: picked.name,
+        caption: caption.isEmpty ? null : caption,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('图片已发送')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('图片发送失败: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _sendingImage = false);
+    }
   }
 }
 

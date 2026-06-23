@@ -136,6 +136,58 @@ class ChatRepository {
     );
   }
 
+  /// 发送图片消息
+  ///
+  /// 对应桌面端 `SendNewChatImgMsgReq`（`/home/ubuntu/project/picacg-qt-temp/src/server/req.py` lines 794-812）
+  /// 端点：POST `{chatBaseUrl}message/send-image`
+  /// Multipart form fields:
+  ///   - roomId (text)
+  ///   - caption (text, optional)
+  ///   - referenceId (text, uuid)
+  ///   - userMentions (text, JSON-stringified array, default "[]")
+  ///   - medias (file, the picked image)
+  /// Headers: `authorization: Bearer <chat_token>`，**不设置** Content-Type（让 dio 写入 multipart boundary）
+  ///
+  /// 返回：服务器返回的 message id（字符串），失败时抛异常
+  Future<String> sendImage({
+    required String roomId,
+    required String filePath,
+    String? filename,
+    String? caption,
+  }) async {
+    final token = await _loadCachedToken();
+    if (token == null) throw Exception('未登录聊天服务器');
+    final formData = FormData.fromMap({
+      'roomId': roomId,
+      'caption': caption ?? '',
+      'referenceId': _genUuid(),
+      'userMentions': '[]',
+      'medias': await MultipartFile.fromFile(
+        filePath,
+        filename: filename ?? filePath.split('/').last,
+      ),
+    });
+    final response = await _dio().post(
+      'message/send-image',
+      data: formData,
+      options: Options(
+        headers: {
+          'authorization': 'Bearer $token',
+          // 显式移除 content-type，让 dio 自动写入 multipart/form-data; boundary=...
+        },
+        contentType: 'multipart/form-data',
+      ),
+    );
+    final data = response.data is Map
+        ? (response.data as Map).cast<String, dynamic>()
+        : <String, dynamic>{};
+    final id = data['id']?.toString() ??
+        data['messageId']?.toString() ??
+        data['_id']?.toString() ??
+        '';
+    return id;
+  }
+
   /// 打开 WebSocket 连接到指定房间
   /// 返回 (channel, stream) — stream 是 WebSocket 收到的 JSON 消息
   Future<({WebSocketChannel channel, Stream<dynamic> stream})> connect({
@@ -147,7 +199,7 @@ class ChatRepository {
     final wsUrl = _chatBaseUrl
         .replaceFirst('https://', 'wss://')
         .replaceFirst('http://', 'ws://');
-    final uri = Uri.parse('${wsUrl}?token=$token&room=$roomId');
+    final uri = Uri.parse('$wsUrl?token=$token&room=$roomId');
     final channel = WebSocketChannel.connect(uri);
     // stream 是经过 JSON 解码的 message 流
     final stream = channel.stream.map((raw) {
