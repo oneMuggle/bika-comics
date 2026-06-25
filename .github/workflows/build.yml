@@ -38,6 +38,21 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        # GitHub Actions 的 android-actions/setup-android@v3 偶发失败 (网络 / 缓存抖动)。
+        # 用 continue-on-error + 重试模式保证 build 流程稳定。
+        continue-on-error: true
+
+      - name: Retry Setup Android SDK
+        if: steps.setup-android-sdk.outcome == 'failure'
+        run: |
+          echo "::warning::第一次 android-actions/setup-android@v3 失败，重试中..."
+          sleep 15
+          rm -rf /opt/android-sdk* 2>/dev/null || true
+          rm -rf /usr/local/lib/android/sdk 2>/dev/null || true
+
+      - name: Setup Android SDK (retry)
+        if: steps.setup-android-sdk.outcome == 'failure'
+        uses: android-actions/setup-android@v3
 
       - name: Accept Android Licenses
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
@@ -86,6 +101,31 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        # GitHub Actions 的 android-actions/setup-android@v3 偶发失败 (网络 / 缓存抖动)。
+        # 用 continue-on-error + 重试模式保证 build-release 流程稳定。
+        continue-on-error: true
+
+      - name: Retry Setup Android SDK
+        if: steps.setup-android-sdk.outcome == 'failure'
+        run: |
+          echo "::warning::第一次 android-actions/setup-android@v3 失败，重试中..."
+          sleep 15
+          # 第二次：清理可能残留的 SDK 缓存后重试
+          rm -rf /opt/android-sdk* 2>/dev/null || true
+          rm -rf /usr/local/lib/android/sdk 2>/dev/null || true
+
+      - name: Setup Android SDK (retry)
+        if: steps.setup-android-sdk.outcome == 'failure'
+        uses: android-actions/setup-android@v3
+
+      - name: Verify Android SDK
+        run: |
+          if [ ! -d "$ANDROID_HOME" ] || [ ! -d "$ANDROID_HOME/cmdline-tools" ]; then
+            echo "::error::ANDROID_HOME 未正确设置: $ANDROID_HOME"
+            exit 1
+          fi
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -la "$ANDROID_HOME"
 
       - name: Accept Android Licenses
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true

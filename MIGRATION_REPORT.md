@@ -1329,7 +1329,9 @@ final response = await _dio().post(
 - `flutter analyze` → **178 issues**（全部 info-level，与第十二批持平，**无新增 error / warning**）
 - `flutter test` → 6/6 passed
 - `flutter build apk --debug` → **本地 NDK 27 + Android SDK cmake 3.22 工具链不兼容**（`CMAKE_C_COMPILER not set, after EnableLanguage`），与代码无关，依赖 CI 验证
-- **CI Build Android APK workflow**（commit `afb5237`）→ 待验证
+- **CI Build Android APK workflow**（commit `afb5237`）→ ✅ **completed / success**（run `28190547579`）—— `build` + `build-release` 双 job 全部通过
+- **CI Build Android APK workflow**（commit `fde9ba8`，仅 MIGRATION_REPORT.md 变更）→ ⚠️ `build` ✅ / `build-release` ❌（run `28190594179`，失败于 step 7 `android-actions/setup-android@v3` —— GitHub Actions 平台 SDK 安装基础设施抖动，与代码无关；与第十二批 commit `b450459` 同样症状）
+- **CI Create GitHub Release workflow**（commit `fde9ba8`）→ ❌ failed（依赖 `build-release` 的 artifact，平台限制级联）
 
 ### 16.9 依赖
 
