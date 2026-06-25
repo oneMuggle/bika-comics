@@ -1332,6 +1332,8 @@ final response = await _dio().post(
 - **CI Build Android APK workflow**（commit `afb5237`）→ ✅ **completed / success**（run `28190547579`）—— `build` + `build-release` 双 job 全部通过
 - **CI Build Android APK workflow**（commit `fde9ba8`，仅 MIGRATION_REPORT.md 变更）→ ⚠️ `build` ✅ / `build-release` ❌（run `28190594179`，失败于 step 7 `android-actions/setup-android@v3` —— GitHub Actions 平台 SDK 安装基础设施抖动，与代码无关；与第十二批 commit `b450459` 同样症状）
 - **CI Create GitHub Release workflow**（commit `fde9ba8`）→ ❌ failed（依赖 `build-release` 的 artifact，平台限制级联）
+- **CI Build Android APK workflow**（commit `e4056a8`，workflow 重试加固）→ ✅ **completed / success**（run `28191370500`）—— 给 `build` + `build-release` 两个 job 的 `android-actions/setup-android@v3` 加 `continue-on-error: true` + 失败时重试模式后，`build-release` 顺利通过
+- **CI Create GitHub Release workflow**（commit `e4056a8`）→ ❌ failed（run `28191572500`，失败于 step 3 `Download Release APK via gh CLI` —— `workflow_run` 触发的工作流下载上游 artifact 的 GitHub Actions 已知平台限制，无法在不重构架构的前提下解决）
 
 ### 16.9 依赖
 
