@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../shared/constants/app_colors.dart';
+import '../data/zip_extractor.dart';
 import 'local_reader_screen.dart';
+import 'zip_reader_screen.dart';
 
 /// NAS 本地阅读 — 移动端迁移第七批（文件浏览器）
 ///
@@ -39,6 +41,11 @@ class _NasLocalScreenState extends State<NasLocalScreen> {
 
   static const _imageExtensions = {
     '.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.heic', '.avif',
+  };
+
+  /// ZIP / CBZ 漫画包扩展名（与桌面端 `view/tool/local_read_view.py` 解析一致）
+  static const _zipExtensions = {
+    '.zip', '.cbz',
   };
 
   @override
@@ -237,6 +244,11 @@ class _NasLocalScreenState extends State<NasLocalScreen> {
     return _imageExtensions.any(lower.endsWith);
   }
 
+  bool _isZip(String path) {
+    final lower = path.toLowerCase();
+    return _zipExtensions.any(lower.endsWith);
+  }
+
   Future<void> _openAsReader(String dirPath, String title) async {
     final images = await _collectImages(dirPath);
     if (!mounted) return;
@@ -252,6 +264,66 @@ class _NasLocalScreenState extends State<NasLocalScreen> {
           imagePaths: images,
           initialIndex: 0,
           title: title,
+        ),
+      ),
+    );
+  }
+
+  /// 打开一个 ZIP / CBZ 漫画包：解析 → 解压到内存 → 启动 ZipReaderScreen
+  ///
+  /// 对应桌面端 `view/tool/local_read_view.py#CheckAction2` 的核心交互：
+  ///   1. `QFileDialog` 选 .zip / .cbz
+  ///   2. `ParseBookInfoByFile` 校验 + 解析
+  ///   3. `LocalEpsReadView` 启动阅读
+  ///
+  /// 移动端用 loading dialog 替代 QtOwner.ShowLoading()，错误用 SnackBar 替代 Log.Error。
+  Future<void> _openAsZipReader(String zipPath, String title) async {
+    if (!mounted) return;
+
+    // 显示 loading dialog（仿 QtOwner().ShowLoading()）
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const PopScope(
+        canPop: false,
+        child: Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('正在解析压缩包...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final result = await ZipExtractor.extract(zipPath);
+
+    if (!mounted) return;
+    // 关闭 loading
+    Navigator.of(context, rootNavigator: true).pop();
+
+    if (!result.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.errorMessage ?? '解析失败')),
+      );
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ZipReaderScreen(
+          entries: result.entries,
+          initialIndex: 0,
+          title: title,
+          sourcePath: zipPath,
         ),
       ),
     );
@@ -368,6 +440,7 @@ class _NasLocalScreenState extends State<NasLocalScreen> {
               '• 点击目录进入下一级；\n'
               '• 长按文件/目录查看属性；\n'
               '• 顶栏「阅读此目录」将自动扫描第一层子目录中的图片并启动阅读器；\n'
+              '• 点击 .zip / .cbz 漫画包可解压阅读（不写入磁盘）；\n'
               '• 远端 SFTP / WebDAV / SMB 客户端后续接入。',
               style: TextStyle(fontSize: 11, height: 1.5),
             ),
@@ -418,9 +491,13 @@ class _NasLocalScreenState extends State<NasLocalScreen> {
           onTap: e.isDirectory
               ? () => _enterDir(e.path)
               : () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${e.name} — ${_formatSize(e.sizeBytes)}')),
-                  );
+                  if (_isZip(e.path)) {
+                    _openAsZipReader(e.path, e.name);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('${e.name} — ${_formatSize(e.sizeBytes)}')),
+                    );
+                  }
                 },
           onLongPress: () => _showProperties(e),
         );
@@ -437,6 +514,9 @@ class _NasLocalScreenState extends State<NasLocalScreen> {
     }
     if (e.isDirectory) {
       return const Icon(Icons.folder_open, color: AppColors.primary);
+    }
+    if (_isZip(e.path)) {
+      return const Icon(Icons.folder_zip_outlined, color: Colors.orange);
     }
     if (_isImage(e.path)) {
       return const Icon(Icons.image_outlined, color: Colors.green);
