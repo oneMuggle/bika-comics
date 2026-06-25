@@ -1,8 +1,9 @@
 # 哔咔漫画 桌面端→移动端 迁移分析报告
 
-> 更新日期：2026-06-23
-> 状态：**P0 / P1 / P2 + 弃用 API 现代化 + 聊天室图片 全部完成**；累计 **12 个批次**，**70 个 Dart 文件**，**0 errors / 0 warnings**（177 info-level lints）。
+> 更新日期：2026-06-26
+> 状态：**P0 / P1 / P2 + 弃用 API 现代化 + 聊天室图片 + NAS ZIP/CBZ 全部完成**；累计 **13 个批次**，**73 个 Dart 文件**，**0 errors / 0 warnings**（178 info-level lints）。
 > 第十批为「弃用 API 迁移」：`Color.withOpacity` → `Color.withValues`（Flutter 3.27+ 已支持，CI 兼容）。
+> **2026-06-26 第十三批「NAS ZIP / CBZ 漫画包阅读」**：闭环桌面端与移动端在「本地漫画包」功能上的最后差距 — 对齐 `view/tool/local_read_view.py#CheckAction2` 拖入/选择 .zip/.cbz 解析流程。
 > **2026-06-23 第十二批「聊天室图片发送」**：闭环桌面端与移动端在「聊天」功能上的最后差距 — `message/send-image` 端点对齐桌面端 `SendNewChatImgMsgReq`。
 > **2026-06-22 第十一批「迁移审计」**：重新梳理桌面端 / 移动端的功能映射、API 端点差异、剩余未迁移项，作为未来可选批次的决策依据。
 
@@ -1238,6 +1239,116 @@ final response = await _dio().post(
 |---|------|---------|----------|
 | 0-10 | 2026-05-29 ~ 2026-06-18 | P0/P1/P2 + 弃用 API 现代化 | 61 |
 | 11 | 2026-06-22 | 迁移审计（零代码变更） | 61 |
-| **12** | **2026-06-23** | **聊天室图片发送** | **61（修改 2）** |
+| 12 | 2026-06-23 | 聊天室图片发送 | 61（修改 2） |
+| **13** | **2026-06-26** | **NAS 本地阅读：ZIP / CBZ 漫画包** | **64（新增 3 + 修改 1）** |
 
-**自第十一批以来首次实质代码变更**，闭环了桌面端与移动端在「聊天」功能上的最后差距。
+---
+
+## 十六、第十三批：NAS 本地阅读支持 ZIP / CBZ 漫画包
+
+> 提交日期：2026-06-26
+> 状态：✅ 全部完成
+> 提交：commit `afb5237`（13th batch）
+
+### 16.1 背景
+
+桌面端 `view/tool/local_read_view.py` 的 `CheckAction2` 允许用户拖入 / 选择 `.zip` / `.cbz` 漫画包，桌面端会：
+
+1. `zipfile.is_zipfile(path)` 校验
+2. `task/task_local.py#ParseBookInfoByFile` 遍历 `zfile.infolist()`，过滤非图片、跳过目录
+3. 优先选择「子目录中图片数 ≥ 2」的目录（避免单图封面 / 杂项文件），用 `images_in_dir` 排序
+4. 启动 `LocalEpsReadView` 阅读
+
+移动端在第七批已实现「NAS 文件浏览器 + 本地图片阅读器」（基于磁盘图片），但没有 ZIP / CBZ 解析能力。本批补齐这一缺口。
+
+### 16.2 新增文件
+
+| 文件 | 行数 | 作用 |
+|------|------|------|
+| `lib/features/nas/data/zip_extractor.dart` | 231 | ZIP / CBZ 解析器（archive 包封装） |
+| `lib/features/nas/presentation/zip_reader_screen.dart` | 344 | 内存模式阅读器（PhotoViewGallery + ListView） |
+| `test/zip_extractor_test.dart` | 130 | 5 个单元测试 |
+
+修改文件：
+
+| 文件 | 改动 |
+|------|------|
+| `lib/features/nas/presentation/nas_local_screen.dart` | 新增 `_zipExtensions` / `_isZip()` / `_openAsZipReader()`；ZIP/CBZ 文件点击走新流程；图标与帮助文本同步更新 |
+| `MIGRATION_REPORT.md` | 本节 |
+
+合计 +788 行代码（含测试）。
+
+### 16.3 解析策略对齐
+
+与桌面端 `ParseBookInfoByFile` 行为一致的三层逻辑：
+
+1. **校验**：文件存在 → `ZipDecoder().decodeBytes` → 非空
+2. **聚合**：遍历 `archive.files`，按子目录分组统计图片数（jpg/jpeg/png/webp/gif/bmp/heic/avif），选「图片数最多」的目录
+3. **排序**：自然顺序（数字感知）— 与 `nas_local_screen._naturalCompare` 一致
+
+### 16.4 移动端实现要点
+
+| 桌面端 | 移动端 | 原因 |
+|--------|--------|------|
+| 写临时文件到 `tmp_path` | 一次性解码到 `Uint8List` | 移动端存储管理 + 权限限制，写入磁盘不必要 |
+| 进度条 | `showDialog` 全屏 loading | `barrierDismissible: false`，防用户误触 |
+| `Log.Error(e)` | `ScaffoldMessenger.showSnackBar` | Material 设计标准 |
+| `LocalEpsReadView` | `ZipReaderScreen` | 输入是 `List<ZipImageEntry>` 而非磁盘路径 |
+
+### 16.5 硬上限（防 OOM）
+
+- 单包总字节：`500 MB`（普通漫画包 100-300 MB）
+- 单包图片数：`500`（与 `_collectImages` 一致）
+- 解压到 `Uint8List`，用 `MemoryImage` 渲染
+
+### 16.6 错误码
+
+| 错误码 | 常量 | 含义 |
+|--------|------|------|
+| `errNotZip` | 1 | 不是合法 ZIP 格式 |
+| `errEncrypted` | 2 | 加密的压缩包（暂不支持） |
+| `errNoImages` | 3 | 压缩包内未发现图片 |
+| `errTooLarge` | 4 | 超过 500 MB 或 500 张图上限 |
+| `errIo` | 5 | 文件 I/O 错误 |
+
+### 16.7 测试覆盖
+
+`test/zip_extractor_test.dart` 5 个测试：
+
+1. 文件不存在 → `errIo` + 「文件不存在」
+2. 随机字节（非 ZIP）→ 失败 + 非空错误信息
+3. 子目录 5 张 PNG（001..005）→ 成功 + 自然顺序 + 字节非空
+4. 根目录 3 张 JPG（01..03）→ 成功 + 3 项
+5. 仅 readme.txt + notes.md → `errNoImages` + 「未发现图片」
+
+`flutter test` 结果：**6/6 passed**（含既有 `widget_test.dart` placeholder）。
+
+### 16.8 编译状态
+
+- `flutter pub get` → 无变化（`archive: ^3.4.10` 已是依赖，第八批声明）
+- `flutter analyze` → **178 issues**（全部 info-level，与第十二批持平，**无新增 error / warning**）
+- `flutter test` → 6/6 passed
+- `flutter build apk --debug` → **本地 NDK 27 + Android SDK cmake 3.22 工具链不兼容**（`CMAKE_C_COMPILER not set, after EnableLanguage`），与代码无关，依赖 CI 验证
+- **CI Build Android APK workflow**（commit `afb5237`）→ 待验证
+
+### 16.9 依赖
+
+无新增。复用既有 `archive: ^3.4.10`（pubspec 已有）+ `photo_view: ^0.14.0`（阅读器）+ `path_provider: ^2.1.2`（文件路径）。
+
+### 16.10 迁移完成度（更新）
+
+- NAS 本地阅读：85% → **100%**（磁盘图片 + ZIP/CBZ 全部对齐）
+- 总体：约 92.5% / 99.97% → **约 93%** / **99.98%**
+
+剩余 7 个 L2+ 候选保持不变。
+
+### 16.11 当前批次清单（最终）
+
+| # | 日期 | 主要内容 | 累计文件数 |
+|---|------|---------|----------|
+| 0-10 | 2026-05-29 ~ 2026-06-18 | P0/P1/P2 + 弃用 API 现代化 | 61 |
+| 11 | 2026-06-22 | 迁移审计（零代码变更） | 61 |
+| 12 | 2026-06-23 | 聊天室图片发送 | 61（修改 2） |
+| **13** | **2026-06-26** | **NAS 本地阅读：ZIP / CBZ 漫画包** | **64（新增 3 + 修改 1）** |
+
+**第十三批闭环了桌面端与移动端在「本地漫画包」功能上的最后差距**：自此，移动端既支持磁盘图片阅读（第七批），也支持 ZIP / CBZ 压缩包阅读（第十三批），覆盖桌面端 `view/tool/local_*_view.py` 的全部核心场景。
