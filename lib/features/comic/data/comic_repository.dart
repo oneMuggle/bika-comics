@@ -119,7 +119,7 @@ class ComicRepository {
   /// 获取漫画评论
   Future<List<Comment>> getComments(String comicId, {int page = 1}) async {
     final url =
-        ApiEndpoints.comments.replaceFirst('{id}', comicId) + '?page=$page';
+        '${ApiEndpoints.comments.replaceFirst('{id}', comicId)}?page=$page';
     final response = await _api.get(url);
     final data = response.data['data'];
     final docs = data['docs'] as List? ?? [];

@@ -7,6 +7,7 @@
 /// - GET /pic/share/get/?shareId=<pica号>  → 解析回漫画 ID
 /// - GET /pic/share/set/?c=<bookId>        → 生成 Pica 号
 /// - GET /pic/recommend/get/?c=<bookId>    → 推荐位内容
+library;
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

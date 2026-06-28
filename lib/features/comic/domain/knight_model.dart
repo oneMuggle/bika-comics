@@ -2,6 +2,7 @@
 ///
 /// 桌面端 API: GET /comics/knight-leaderboard
 /// 响应结构: { "data": { "users": [ { _id, name, slogan, avatar, title, level, character } ] } }
+library;
 
 import 'package:flutter/foundation.dart';
 

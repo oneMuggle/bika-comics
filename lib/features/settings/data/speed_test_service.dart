@@ -5,6 +5,7 @@
 ///   - `SpeedTestPingReq` — Ping（请求 /categories 接口测延迟）
 ///
 /// 详见 src/server/req.py
+library;
 
 import 'dart:async';
 import 'dart:io';

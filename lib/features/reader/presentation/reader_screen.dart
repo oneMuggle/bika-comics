@@ -241,6 +241,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         ),
                         GestureDetector(
                           onTap: () async {
+                            // 提前捕获高度，避免 await 后使用 BuildContext
+                            final renderBox =
+                                context.findRenderObject() as RenderBox?;
                             final target = await _showPageDialog(
                                 context, pages.length);
                             if (target != null && target >= 0) {
@@ -248,7 +251,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                 _pageController.jumpToPage(target);
                               } else {
                                 // 条状模式：按页码 × 屏幕高度滚动
-                                final renderBox = context.findRenderObject() as RenderBox?;
                                 if (renderBox != null) {
                                   final h = renderBox.size.height;
                                   if (h > 0) {

@@ -197,7 +197,7 @@ class ComicDetailScreen extends ConsumerWidget {
           onPressed: () {
             Share.share(
               '${comic.title}\n'
-              '${comic.description.isNotEmpty ? comic.description + "\n" : ""}'
+              '${comic.description.isNotEmpty ? "${comic.description}\n" : ""}'
               'https://picacomic.com/comic/${comic.id}',
               subject: comic.title,
             );
@@ -282,20 +282,21 @@ class ComicDetailScreen extends ConsumerWidget {
           const SizedBox(width: 8),
           IconButton(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               try {
                 if (detail.comic.isFavourite) {
                   await repo.unfavourite(detail.comic.id);
                 } else {
                   await repo.favourite(detail.comic.id);
                 }
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   SnackBar(
                     content: Text(detail.comic.isFavourite ? '已取消收藏' : '已收藏'),
                     duration: const Duration(seconds: 1),
                   ),
                 );
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   SnackBar(content: Text('操作失败: $e')),
                 );
               }
@@ -308,20 +309,21 @@ class ComicDetailScreen extends ConsumerWidget {
           ),
           IconButton(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               try {
                 if (detail.comic.isFollowed) {
                   await repo.unfollow(detail.comic.id);
                 } else {
                   await repo.follow(detail.comic.id);
                 }
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   SnackBar(
                     content: Text(detail.comic.isFollowed ? '已取消追漫' : '已追漫'),
                     duration: const Duration(seconds: 1),
                   ),
                 );
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   SnackBar(content: Text('操作失败: $e')),
                 );
               }
@@ -334,16 +336,17 @@ class ComicDetailScreen extends ConsumerWidget {
           ),
           IconButton(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               try {
                 await repo.like(detail.comic.id);
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text('已点赞'),
                     duration: Duration(seconds: 1),
                   ),
                 );
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   SnackBar(content: Text('操作失败: $e')),
                 );
               }

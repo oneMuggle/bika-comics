@@ -175,12 +175,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: const Text(AppStrings.clearCache),
             subtitle: const Text('清理图片缓存'),
             onTap: () async {
+              // 提前捕获 messenger，避免 await 后使用 BuildContext
+              final messenger = ScaffoldMessenger.of(context);
               await ref.read(settingsScreenProvider.notifier).clearCache();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text(AppStrings.cacheCleared)),
-                );
-              }
+              messenger.showSnackBar(
+                const SnackBar(content: Text(AppStrings.cacheCleared)),
+              );
             },
           ),
           ListTile(

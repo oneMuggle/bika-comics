@@ -238,13 +238,14 @@ class _LocalReaderScreenState extends State<LocalReaderScreen> {
                       ),
                       GestureDetector(
                         onTap: () async {
+                          // 提前捕获高度，避免 await 后使用 BuildContext
+                          final h =
+                              (context.findRenderObject() as RenderBox?)?.size.height ?? 0;
                           final target = await _showPageDialog();
                           if (target != null && mounted) {
                             if (_mode == _LocalReaderMode.single) {
                               _pageController.jumpToPage(target);
                             } else {
-                              final h =
-                                  (context.findRenderObject() as RenderBox?)?.size.height ?? 0;
                               if (h > 0) _verticalController.jumpTo(target * h);
                             }
                             setState(() => _currentPage = target);

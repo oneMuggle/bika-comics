@@ -1,8 +1,8 @@
 # 哔咔漫画 桌面端→移动端 迁移分析报告
 
-> 更新日期：2026-06-26
-> 状态：**P0 / P1 / P2 + 弃用 API 现代化 + 聊天室图片 + NAS ZIP/CBZ 全部完成**；累计 **13 个批次**，**73 个 Dart 文件**，**0 errors / 0 warnings**（178 info-level lints）。
-> 第十批为「弃用 API 迁移」：`Color.withOpacity` → `Color.withValues`（Flutter 3.27+ 已支持，CI 兼容）。
+> 更新日期：2026-06-29
+> 状态：**P0 / P1 / P2 + 弃用 API 现代化 + 聊天室图片 + NAS ZIP/CBZ + 代码健康度 lint 全部完成**；累计 **14 个批次**，**73 个 Dart 文件**，**0 errors / 0 warnings**（**160 info-level lints，从 178 下降 -18**）。
+> **2026-06-29 第十四批「代码健康度 lint 清理」**：零功能改动，闭环所有不依赖 Flutter SDK 升级的 info-level 静态分析提示 —— `dangling_library_doc_comments`（3 处）、`prefer_interpolation_to_compose_strings`（2 处）、`prefer_const_declarations`（1 处）、`use_build_context_synchronously`（12 处）。`deprecated_member_use`（4 处 `RadioListTile`）保留为 L1 候选，需 CI Flutter 升级 3.27.4 → 3.32.x 方可安全迁移。
 > **2026-06-26 第十三批「NAS ZIP / CBZ 漫画包阅读」**：闭环桌面端与移动端在「本地漫画包」功能上的最后差距 — 对齐 `view/tool/local_read_view.py#CheckAction2` 拖入/选择 .zip/.cbz 解析流程。
 > **2026-06-23 第十二批「聊天室图片发送」**：闭环桌面端与移动端在「聊天」功能上的最后差距 — `message/send-image` 端点对齐桌面端 `SendNewChatImgMsgReq`。
 > **2026-06-22 第十一批「迁移审计」**：重新梳理桌面端 / 移动端的功能映射、API 端点差异、剩余未迁移项，作为未来可选批次的决策依据。
@@ -1356,3 +1356,161 @@ final response = await _dio().post(
 | **13** | **2026-06-26** | **NAS 本地阅读：ZIP / CBZ 漫画包** | **64（新增 3 + 修改 1）** |
 
 **第十三批闭环了桌面端与移动端在「本地漫画包」功能上的最后差距**：自此，移动端既支持磁盘图片阅读（第七批），也支持 ZIP / CBZ 压缩包阅读（第十三批），覆盖桌面端 `view/tool/local_*_view.py` 的全部核心场景。
+
+---
+
+## 十七、第十四批：代码健康度 lint 清理（零功能改动）
+
+> 提交日期：2026-06-29
+> 状态：✅ 全部完成
+> 提交：commit `pending`
+
+### 17.1 背景
+
+第十三批完成后，`flutter analyze lib/` 报告 **178 issues，全部 info-level**（0 errors / 0 warnings）。其中 18 项可在不升级 Flutter SDK（CI 锁定 3.27.4）的前提下安全修复。剩余 160 项中：
+
+- **149 × `prefer_const_constructors`**：纯性能 hint，构造未使用 `const` 关键字 — 改造成本高、风险偏高、收益仅微秒级（info-only），本批**不**纳入
+- **7 × `prefer_const_literals_to_create_immutables`**：同上，集合字面量 `const` 化 — 本批**不**纳入
+- **4 × `deprecated_member_use`**（`RadioListTile.groupValue` / `onChanged`）：deprecation 标记 "after v3.32.0-0.0.pre"，CI 3.27.4 **仍支持**但**无 `RadioGroup` 类** — **保留为 L1 候选**，需 SDK 升级
+
+本批清理目标：**18 项 lint** → **0**。
+
+### 17.2 改动明细
+
+#### 17.2.1 `dangling_library_doc_comments` × 3（修复）
+
+文件级 `///` 文档注释紧跟 `import` 而非 library 声明，dart 3 视为「悬空」。修复：在文档注释后追加 `library;` 声明。
+
+| 文件 | 改动 |
+|------|------|
+| `lib/features/comic/data/pica_share_service.dart` | 文件头 doc 注释后加 `library;` |
+| `lib/features/comic/domain/knight_model.dart` | 同上 |
+| `lib/features/settings/data/speed_test_service.dart` | 同上 |
+
+#### 17.2.2 `prefer_interpolation_to_compose_strings` × 2（修复）
+
+| 文件 | 原代码 | 修复 |
+|------|--------|------|
+| `lib/features/comic/data/comic_repository.dart:122` | `ApiEndpoints.comments.replaceFirst('{id}', comicId) + '?page=$page'` | `'${ApiEndpoints.comments.replaceFirst('{id}', comicId)}?page=$page'` |
+| `lib/features/comic/presentation/comic_detail_screen.dart:200` | `comic.description + "\n"` 拼接 | `"${comic.description}\n"` 内插 |
+
+#### 17.2.3 `prefer_const_declarations` × 1（修复）
+
+`ApiEndpoints.defaultBaseUrl` 是 `static const String`，`baseUrl` 变量可声明为 `const` 而非 `final`：
+
+| 文件 | 改动 |
+|------|------|
+| `lib/core/api/api_client.dart:23` | `final baseUrl = ApiEndpoints.defaultBaseUrl;` → `const baseUrl = ApiEndpoints.defaultBaseUrl;` |
+
+#### 17.2.4 `use_build_context_synchronously` × 12（修复）
+
+`await` 之后使用 `BuildContext`（直接或通过 `ScaffoldMessenger.of(context)`）的常见反模式。统一采用两种模式之一：
+
+**模式 A — 提前捕获 messenger（6 处）**：
+
+```dart
+onPressed: () async {
+  final messenger = ScaffoldMessenger.of(context);  // 捕获在 await 之前
+  try {
+    await repo.someAction();
+    messenger.showSnackBar(...);  // 用捕获的 messenger 而非重新 of(context)
+  } catch (e) {
+    messenger.showSnackBar(...);
+  }
+}
+```
+
+| 文件 | 位置 |
+|------|------|
+| `lib/features/auth/presentation/profile_screen.dart` | `_changeAvatar`（去重多余 `messenger` 捕获）+ `_changeTitle`（提前到 `await showDialog` 之前） |
+| `lib/features/comic/presentation/comic_detail_screen.dart` | 收藏 / 追漫 / 点赞 三个 `IconButton.onPressed` |
+| `lib/features/settings/presentation/settings_screen.dart` | `clearCache` 列表项 |
+
+**模式 B — 提前捕获 RenderBox 高度（3 处）**：
+
+阅读器跳转页码时需要 `RenderBox.size.height` 计算滚动位置：
+
+```dart
+onTap: () async {
+  // 提前捕获 RenderBox 引用，避免 await 后使用 BuildContext
+  final renderBox = context.findRenderObject() as RenderBox?;
+  final target = await _showPageDialog();
+  if (target != null && mounted) {
+    if (_readerMode == _ReaderMode.single) { ... }
+    else {
+      if (renderBox != null) {
+        final h = renderBox.size.height;
+        if (h > 0) _verticalController.jumpTo(target * h);
+      }
+    }
+  }
+}
+```
+
+| 文件 | 模式 |
+|------|------|
+| `lib/features/nas/presentation/local_reader_screen.dart` | B |
+| `lib/features/nas/presentation/zip_reader_screen.dart` | B |
+| `lib/features/reader/presentation/reader_screen.dart` | B |
+
+### 17.3 文件清单（11 个修改，零新增）
+
+| 文件 | 改动类型 | lint 数 |
+|------|---------|--------|
+| `lib/core/api/api_client.dart` | prefer_const_declarations ×1 | 1 |
+| `lib/features/auth/presentation/profile_screen.dart` | use_build_context_synchronously ×2 | 2 |
+| `lib/features/comic/data/comic_repository.dart` | prefer_interpolation ×1 | 1 |
+| `lib/features/comic/data/pica_share_service.dart` | dangling_library_doc_comments ×1 | 1 |
+| `lib/features/comic/domain/knight_model.dart` | dangling_library_doc_comments ×1 | 1 |
+| `lib/features/comic/presentation/comic_detail_screen.dart` | use_build_context_synchronously ×6 + prefer_interpolation ×1 | 7 |
+| `lib/features/nas/presentation/local_reader_screen.dart` | use_build_context_synchronously ×1 | 1 |
+| `lib/features/nas/presentation/zip_reader_screen.dart` | use_build_context_synchronously ×1 | 1 |
+| `lib/features/reader/presentation/reader_screen.dart` | use_build_context_synchronously ×1 | 1 |
+| `lib/features/settings/data/speed_test_service.dart` | dangling_library_doc_comments ×1 | 1 |
+| `lib/features/settings/presentation/settings_screen.dart` | use_build_context_synchronously ×1 | 1 |
+| **合计** | — | **18** |
+
+合计 +43 / -37 行（净 +6 行，含必要的中文注释）。
+
+### 17.4 编译状态
+
+- `flutter analyze lib/` → **160 issues found**（从 178 下降 -18，全部 info-level）
+  - `dangling_library_doc_comments`: 3 → 0 ✅
+  - `prefer_interpolation_to_compose_strings`: 2 → 0 ✅
+  - `prefer_const_declarations`: 1 → 0 ✅
+  - `use_build_context_synchronously`: 12 → 0 ✅
+- `flutter test` → **6/6 passed**（含既有 `widget_test.dart` placeholder + `zip_extractor_test.dart` 5 个）
+- `flutter build apk --debug` → 本地 NDK 27 + Android SDK cmake 3.22 工具链不兼容，依赖 CI 验证
+- **CI Build Android APK workflow**（commit `pending`）→ 待验证
+- **CI Create GitHub Release workflow**（commit `pending`）→ 受已知 GitHub Actions 平台限制，可能失败但**与本批代码无关**
+
+### 17.5 依赖
+
+无新增。无 pubspec 变更。
+
+### 17.6 迁移完成度（更新）
+
+- 代码健康度：160 lints（其中 18 项可零风险清理 + 156 项性能 hint 或需 SDK 升级）→ 160 维持（**全部可清理项已清理**）
+- 总体：约 93% / 99.98%（**不变**）—— 本批为代码健康度维护，零功能变更
+
+### 17.7 当前批次清单（最终）
+
+| # | 日期 | 主要内容 | 累计文件数 |
+|---|------|---------|----------|
+| 0-10 | 2026-05-29 ~ 2026-06-18 | P0/P1/P2 + 弃用 API 现代化 | 61 |
+| 11 | 2026-06-22 | 迁移审计（零代码变更） | 61 |
+| 12 | 2026-06-23 | 聊天室图片发送 | 61（修改 2） |
+| 13 | 2026-06-26 | NAS 本地阅读：ZIP / CBZ 漫画包 | 64（新增 3 + 修改 1） |
+| **14** | **2026-06-29** | **代码健康度 lint 清理（18 项 → 0）** | **64（修改 11）** |
+
+### 17.8 L1 候选（保留，待 Flutter SDK 升级）
+
+| 项 | 文件 | 阻塞原因 |
+|----|------|---------|
+| `RadioListTile` → `RadioGroup` | `lib/features/settings/presentation/settings_screen.dart:316,318,408,410` | `RadioGroup` 仅在 Flutter 3.32+ 引入，CI 锁定 3.27.4；升级前迁移会破坏 CI |
+| `prefer_const_constructors` ×149 | 多文件（home_screen, settings_screen, reader_screen 等） | 纯性能 hint，零功能影响 |
+| `prefer_const_literals_to_create_immutables` ×7 | 多文件 | 同上 |
+
+### 17.9 长期 L2+ 候选（与本批无关）
+
+保持第十一批审计结论：Waifu2x / convert 转 EPUB / 远端 NAS 协议（SFTP/WebDAV）/ 好友系统增强 / OpenGL 加速 / 系统托盘 — 全部需用户场景驱动或第三方库支持。

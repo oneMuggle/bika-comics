@@ -20,7 +20,7 @@ class ApiClient {
   /// 获取配置后的 Dio 实例
   /// 每次调用都会根据当前设置重新配置代理和 Base URL
   static Dio get instance {
-    final baseUrl = ApiEndpoints.defaultBaseUrl;
+    const baseUrl = ApiEndpoints.defaultBaseUrl;
 
     _dio.options.baseUrl = baseUrl;
 

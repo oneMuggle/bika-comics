@@ -304,7 +304,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final picker = await _pickImage();
       if (picker == null) return; // 用户取消
 
-      final messenger = ScaffoldMessenger.of(context);
       messenger.showSnackBar(
         const SnackBar(content: Text('正在上传头像…')),
       );
@@ -335,6 +334,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _changeTitle() async {
     final current = ref.read(authStateProvider).user?.name ?? '';
     final controller = TextEditingController(text: current);
+    // 提前捕获 messenger，避免 await 后使用 BuildContext
+    final messenger = ScaffoldMessenger.of(context);
     final newTitle = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -362,26 +363,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
     if (newTitle == null || newTitle.isEmpty) return;
 
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(authStateProvider.notifier).updateTitle(newTitle);
-      if (mounted) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('个人称号已更新'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('个人称号已更新'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('更新失败: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('更新失败: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
