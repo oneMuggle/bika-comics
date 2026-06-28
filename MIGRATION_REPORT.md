@@ -1363,7 +1363,7 @@ final response = await _dio().post(
 
 > 提交日期：2026-06-29
 > 状态：✅ 全部完成
-> 提交：commit `pending`
+> 提交：commit `48dffef`
 
 ### 17.1 背景
 
@@ -1481,8 +1481,8 @@ onTap: () async {
   - `use_build_context_synchronously`: 12 → 0 ✅
 - `flutter test` → **6/6 passed**（含既有 `widget_test.dart` placeholder + `zip_extractor_test.dart` 5 个）
 - `flutter build apk --debug` → 本地 NDK 27 + Android SDK cmake 3.22 工具链不兼容，依赖 CI 验证
-- **CI Build Android APK workflow**（commit `pending`）→ 待验证
-- **CI Create GitHub Release workflow**（commit `pending`）→ 受已知 GitHub Actions 平台限制，可能失败但**与本批代码无关**
+- **CI Build Android APK workflow**（commit `48dffef`）→ ✅ **completed / success**（run `28331400971`，耗时 6m 24s）—— `build` + `build-release` 双 job 全部通过（Android SDK 首次尝试成功，retry 步骤均被跳过）
+- **CI Create GitHub Release workflow**（commit `48dffef`）→ ❌ failed（run `28331575950`，失败于 step 3 `Download Release APK via gh CLI` —— `workflow_run` 触发的工作流下载上游 artifact 的 GitHub Actions 已知平台限制，无法在不重构架构的前提下解决，与本批代码无关）
 
 ### 17.5 依赖
 
