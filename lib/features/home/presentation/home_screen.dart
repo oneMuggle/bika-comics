@@ -83,8 +83,8 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
       ),
-      body: TabBarView(
-        children: const [
+      body: const TabBarView(
+        children: [
           _CollectionsTab(),
           _RandomTab(),
         ],
@@ -107,7 +107,7 @@ class _CollectionsTab extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
             const SizedBox(height: 16),
             Text('加载失败: $e'),
             const SizedBox(height: 16),
@@ -151,7 +151,7 @@ class _RandomTab extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
             const SizedBox(height: 16),
             Text('加载失败: $e'),
             const SizedBox(height: 16),

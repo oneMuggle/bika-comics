@@ -33,11 +33,11 @@ class GameDetailScreen extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline,
+              const Icon(Icons.error_outline,
                   size: 48, color: AppColors.error),
               const SizedBox(height: 12),
               Text('加载失败: $e',
-                  style: TextStyle(color: AppColors.secondaryText)),
+                  style: const TextStyle(color: AppColors.secondaryText)),
               const SizedBox(height: 12),
               FilledButton(
                 onPressed: () => ref.invalidate(gameDetailProvider(gameId)),
@@ -94,7 +94,7 @@ class _DetailBody extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         game.publisher,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 13,
                           color: AppColors.secondaryText,
                         ),
@@ -104,7 +104,7 @@ class _DetailBody extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         '版本: ${game.version}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.secondaryText,
                         ),
@@ -114,7 +114,7 @@ class _DetailBody extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         '大小: ${game.size}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.secondaryText,
                         ),
@@ -125,10 +125,10 @@ class _DetailBody extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        if (game.suggest) _Badge('推荐', Colors.orange),
-                        if (game.adult) _Badge('R18', Colors.red),
-                        if (game.android) _Badge('Android', Colors.green),
-                        if (game.ios) _Badge('iOS', Colors.blue),
+                        if (game.suggest) const _Badge('推荐', Colors.orange),
+                        if (game.adult) const _Badge('R18', Colors.red),
+                        if (game.android) const _Badge('Android', Colors.green),
+                        if (game.ios) const _Badge('iOS', Colors.blue),
                       ],
                     ),
                   ],

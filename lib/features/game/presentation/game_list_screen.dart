@@ -227,7 +227,7 @@ class _GameCard extends StatelessWidget {
               game.publisher,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 11,
                 color: AppColors.secondaryText,
               ),
@@ -243,13 +243,13 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.videogame_asset_off,
               size: 56, color: AppColors.secondaryText),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Text(
             '暂无游戏',
             style: TextStyle(color: AppColors.secondaryText),
@@ -271,14 +271,14 @@ class _ErrorState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
               '加载失败: $message',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.secondaryText),
+              style: const TextStyle(color: AppColors.secondaryText),
             ),
           ),
           const SizedBox(height: 12),

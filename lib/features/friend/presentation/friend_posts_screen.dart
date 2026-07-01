@@ -195,7 +195,7 @@ class _FriendPostCard extends StatelessWidget {
                                 ),
                                 child: Text(
                                   post.user.title,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: AppColors.primary,
                                     fontSize: 11,
                                   ),
@@ -206,7 +206,7 @@ class _FriendPostCard extends StatelessWidget {
                         ),
                         Text(
                           'LV${post.user.level} · ${_formatDate(post.createdAt)}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 11,
                             color: AppColors.secondaryText,
                           ),
@@ -247,7 +247,7 @@ class _FriendPostCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     '${post.totalLikes}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.secondaryText,
                       fontSize: 12,
                     ),
@@ -257,7 +257,7 @@ class _FriendPostCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     '${post.totalComments}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.secondaryText,
                       fontSize: 12,
                     ),
@@ -282,20 +282,20 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.forum_outlined,
               size: 56, color: AppColors.secondaryText),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Text(
             '暂无动态',
             style: TextStyle(color: AppColors.secondaryText),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: EdgeInsets.symmetric(horizontal: 24),
             child: Text(
               '提示：锅贴由独立服务器 post-api.wikawika.xyz 提供，需要保持登录状态',
               textAlign: TextAlign.center,
@@ -322,14 +322,14 @@ class _ErrorState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
               '加载失败: $message',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.secondaryText),
+              style: const TextStyle(color: AppColors.secondaryText),
             ),
           ),
           const SizedBox(height: 12),

@@ -52,7 +52,10 @@ final localSearchHistoryProvider = FutureProvider<List<String>>((ref) async {
 
 /// 搜索页
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key});
+  /// 第十五批：初始搜索关键词 — 详情页点击 tag 时传入
+  final String initialKeyword;
+
+  const SearchScreen({super.key, this.initialKeyword = ''});
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -61,6 +64,22 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
+  bool _didApplyInitial = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialKeyword.isNotEmpty) {
+      _controller.text = widget.initialKeyword;
+      // 首次 build 后自动触发搜索（等 provider 就绪）
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_didApplyInitial) {
+          _didApplyInitial = true;
+          _search(widget.initialKeyword);
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -289,10 +308,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
         // 搜索热词
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
-            children: const [
+            children: [
               Icon(Icons.local_fire_department,
                   size: 18, color: Colors.orange),
               SizedBox(width: 6),

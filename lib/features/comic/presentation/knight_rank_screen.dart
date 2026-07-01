@@ -30,10 +30,10 @@ class KnightRankScreen extends ConsumerWidget {
             Center(
               child: Column(
                 children: [
-                  Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                  const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                   const SizedBox(height: 12),
                   Text('加载失败: $e',
-                      style: TextStyle(color: AppColors.secondaryText)),
+                      style: const TextStyle(color: AppColors.secondaryText)),
                   const SizedBox(height: 12),
                   FilledButton(
                     onPressed: () => ref.invalidate(knightRankProvider),
@@ -144,7 +144,7 @@ class _KnightCard extends StatelessWidget {
                           ),
                           child: Text(
                             user.title,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 11,
                               color: AppColors.primary,
                             ),
@@ -157,7 +157,7 @@ class _KnightCard extends StatelessWidget {
                   if (user.slogan.isNotEmpty)
                     Text(
                       user.slogan,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.secondaryText,
                         fontSize: 13,
                       ),
@@ -167,12 +167,12 @@ class _KnightCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.military_tech,
+                      const Icon(Icons.military_tech,
                           size: 14, color: AppColors.secondaryText),
                       const SizedBox(width: 4),
                       Text(
                         'Lv.${user.level}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: AppColors.secondaryText,
                           fontSize: 12,
                         ),

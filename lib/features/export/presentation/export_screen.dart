@@ -203,16 +203,16 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       );
     }
     if (_episodes.isEmpty) {
-      return Center(
+      return const Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.inbox_outlined, size: 48, color: Colors.grey),
-              const SizedBox(height: 12),
-              const Text('该漫画尚未下载任何章节，无法导出'),
-              const SizedBox(height: 4),
+              Icon(Icons.inbox_outlined, size: 48, color: Colors.grey),
+              SizedBox(height: 12),
+              Text('该漫画尚未下载任何章节，无法导出'),
+              SizedBox(height: 4),
               Text(
                 '请先在阅读器或漫画详情页中下载章节',
                 style: TextStyle(color: AppColors.secondaryText),
@@ -240,7 +240,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-          child: Icon(Icons.collections_bookmark_outlined,
+          child: const Icon(Icons.collections_bookmark_outlined,
               color: AppColors.primary),
         ),
         title: Text(

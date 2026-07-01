@@ -271,7 +271,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                 ? Center(
                     child: Text(
                       _connected ? '暂无消息' : '正在连接聊天室…',
-                      style: TextStyle(color: AppColors.secondaryText),
+                      style: const TextStyle(color: AppColors.secondaryText),
                     ),
                   )
                 : ListView.builder(
@@ -302,7 +302,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
                       '回复 $_replyToName: $_replyToText',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.secondaryText,
                         fontSize: 12,
                       ),
@@ -532,7 +532,7 @@ class _MessageTile extends StatelessWidget {
                         ),
                         child: Text(
                           profile!.title,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: AppColors.primary,
                             fontSize: 11,
                           ),
@@ -542,7 +542,7 @@ class _MessageTile extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       'LV${profile?.level ?? 0}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.secondaryText,
                         fontSize: 11,
                       ),
@@ -550,7 +550,7 @@ class _MessageTile extends StatelessWidget {
                     const Spacer(),
                     Text(
                       time,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.secondaryText,
                       ),
@@ -577,7 +577,7 @@ class _MessageTile extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppColors.darkCard.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(4),
-                      border: Border(
+                      border: const Border(
                         left: BorderSide(
                           color: AppColors.primary,
                           width: 3,
@@ -587,7 +587,7 @@ class _MessageTile extends StatelessWidget {
                     child: Text(
                       '回复 ${message.reply!.name ?? "匿名"}: '
                       '${message.reply!.message ?? "[图片]"}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.secondaryText,
                       ),
@@ -597,8 +597,8 @@ class _MessageTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 InkWell(
                   onTap: onReply,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 2),
                     child: Text(
                       '回复',
                       style: TextStyle(

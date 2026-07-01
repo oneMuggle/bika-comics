@@ -117,7 +117,7 @@ class _ChatRoomsScreenState extends ConsumerState<ChatRoomsScreen> {
                                 const SizedBox(height: 2),
                                 Text(
                                   'LV${r.minLevel}+ · 注册 ${r.minRegisterDays} 天',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 11,
                                     color: AppColors.secondaryText,
                                   ),
@@ -159,12 +159,12 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
             const SizedBox(height: 12),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.secondaryText),
+              style: const TextStyle(color: AppColors.secondaryText),
             ),
             const SizedBox(height: 12),
             FilledButton(onPressed: onRetry, child: const Text('重试')),

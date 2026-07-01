@@ -12,6 +12,13 @@ final commentsProvider = FutureProvider.family<List<Comment>, String>((ref, comi
   return repo.getComments(comicId);
 });
 
+/// 第十五批：子评论 Provider
+final commentChildrenProvider =
+    FutureProvider.family<List<Comment>, String>((ref, commentId) async {
+  final repo = ref.read(comicRepositoryProvider);
+  return repo.getCommentChildren(commentId);
+});
+
 /// 评论页
 class CommentsScreen extends ConsumerStatefulWidget {
   final String comicId;
@@ -29,6 +36,9 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
   bool _isSending = false;
   String? _replyToId;
   String? _replyToName;
+
+  /// 第十五批：当前展开子评论的父评论 ID（null = 未展开）
+  String? _expandedCommentId;
 
   @override
   void initState() {
@@ -53,13 +63,25 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
     setState(() => _isSending = true);
     try {
       final repo = ref.read(comicRepositoryProvider);
-      await repo.sendComment(widget.comicId, content, parentId: _replyToId);
+      // 第十五批：根据是否选中父评论决定走哪个 API
+      if (_replyToId != null && _expandedCommentId == _replyToId) {
+        // 二级回复（针对子评论链）
+        await repo.sendCommentChild(_replyToId!, content);
+      } else {
+        // 一级回复（针对漫画 / 针对父评论）
+        await repo.sendComment(widget.comicId, content, parentId: _replyToId);
+      }
       _textController.clear();
+      final expandedId = _expandedCommentId;
       setState(() {
         _replyToId = null;
         _replyToName = null;
       });
       ref.invalidate(commentsProvider(widget.comicId));
+      // 第十五批：刷新子评论列表
+      if (expandedId != null) {
+        ref.invalidate(commentChildrenProvider(expandedId));
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -124,7 +146,7 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                    const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                     const SizedBox(height: 16),
                     Text('加载失败: $e'),
                     FilledButton(
@@ -145,15 +167,26 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
                         padding: const EdgeInsets.all(12),
                         itemCount: comments.length,
                         itemBuilder: (context, index) {
-                          return _CommentTile(
-                            comment: comments[index],
-                            onLike: () => _likeComment(comments[index].id),
-                            onReply: (name) =>
-                                _setReplyTo(comments[index].id, name),
-                            onReport: () =>
-                                _reportComment(comments[index].id),
-                          );
-                        },
+                        final c = comments[index];
+                        return _CommentTile(
+                          comment: c,
+                          onLike: () => _likeComment(c.id),
+                          onReply: (name) => _setReplyTo(c.id, name),
+                          onReport: () => _reportComment(c.id),
+                          isExpanded: _expandedCommentId == c.id,
+                          onToggleExpanded: () {
+                            setState(() {
+                              _expandedCommentId =
+                                  _expandedCommentId == c.id ? null : c.id;
+                              // 进入子评论模式后清空旧的 reply 上下文
+                              if (_expandedCommentId != null) {
+                                _replyToId = null;
+                                _replyToName = null;
+                              }
+                            });
+                          },
+                        );
+                      },
                       ),
                     ),
             ),
@@ -192,7 +225,7 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
                 children: [
                   Text(
                     '回复 @$_replyToName',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.primary,
                     ),
@@ -246,18 +279,22 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
   }
 }
 
-/// 单条评论
-class _CommentTile extends StatelessWidget {
+/// 单条评论 — 第十五批改造为 ConsumerWidget 以支持子评论展开
+class _CommentTile extends ConsumerWidget {
   final Comment comment;
   final VoidCallback onLike;
   final void Function(String name) onReply;
   final VoidCallback onReport;
+  final bool isExpanded;
+  final VoidCallback onToggleExpanded;
 
   const _CommentTile({
     required this.comment,
     required this.onLike,
     required this.onReply,
     required this.onReport,
+    required this.isExpanded,
+    required this.onToggleExpanded,
   });
 
   void _showMoreMenu(BuildContext context) {
@@ -282,118 +319,244 @@ class _CommentTile extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 头像
-          ClipOval(
-            child: comment.userAvatar.isNotEmpty
-                ? CachedNetworkImage(
-                    imageUrl: comment.userAvatar,
-                    width: 40,
-                    height: 40,
-                    fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(
-                      width: 40,
-                      height: 40,
-                      color: AppColors.darkCard,
-                      child: const Icon(Icons.person, size: 24),
-                    ),
-                    errorWidget: (_, __, ___) => Container(
-                      width: 40,
-                      height: 40,
-                      color: AppColors.darkCard,
-                      child: const Icon(Icons.person, size: 24),
-                    ),
-                  )
-                : Container(
+          _buildMainRow(context),
+          // 第十五批：子评论展开区
+          if (isExpanded) _buildExpandedSection(context, ref),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMainRow(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 头像
+        ClipOval(
+          child: comment.userAvatar.isNotEmpty
+              ? CachedNetworkImage(
+                  imageUrl: comment.userAvatar,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => Container(
                     width: 40,
                     height: 40,
                     color: AppColors.darkCard,
                     child: const Icon(Icons.person, size: 24),
                   ),
-          ),
-          const SizedBox(width: 12),
-          // 内容
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      comment.userName,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const Spacer(),
-                    Text(
-                      _formatTime(comment.createdAt),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withAlpha(150),
-                      ),
-                    ),
-                  ],
+                  errorWidget: (_, __, ___) => Container(
+                    width: 40,
+                    height: 40,
+                    color: AppColors.darkCard,
+                    child: const Icon(Icons.person, size: 24),
+                  ),
+                )
+              : Container(
+                  width: 40,
+                  height: 40,
+                  color: AppColors.darkCard,
+                  child: const Icon(Icons.person, size: 24),
                 ),
-                const SizedBox(height: 4),
-                Text(comment.content),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: onLike,
-                      child: Row(
-                        children: [
-                          Icon(
-                            comment.isLiked
-                                ? Icons.favorite
-                                : Icons.favorite_border,
-                            size: 18,
-                            color: comment.isLiked
-                                ? AppColors.error
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withAlpha(150),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${comment.likeCount}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(context)
+        ),
+        const SizedBox(width: 12),
+        // 内容
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    comment.userName,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const Spacer(),
+                  Text(
+                    _formatTime(comment.createdAt),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withAlpha(150),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(comment.content),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: onLike,
+                    child: Row(
+                      children: [
+                        Icon(
+                          comment.isLiked
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          size: 18,
+                          color: comment.isLiked
+                              ? AppColors.error
+                              : Theme.of(context)
                                   .colorScheme
                                   .onSurface
                                   .withAlpha(150),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    GestureDetector(
-                      onTap: () => onReply(comment.userName),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.reply,
-                            size: 18,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${comment.likeCount}',
+                          style: TextStyle(
+                            fontSize: 12,
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface
                                 .withAlpha(150),
                           ),
-                          const SizedBox(width: 4),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  GestureDetector(
+                    onTap: () => onReply(comment.userName),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.reply,
+                          size: 18,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withAlpha(150),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '回复',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withAlpha(150),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // 第十五批：展开 / 收起子评论按钮（仅有回复时显示）
+                  if (comment.replyCount > 0) ...[
+                    const SizedBox(width: 16),
+                    GestureDetector(
+                      onTap: onToggleExpanded,
+                      child: Row(
+                        children: [
+                          Icon(
+                            isExpanded
+                                ? Icons.expand_less
+                                : Icons.expand_more,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 2),
                           Text(
-                            '回复',
-                            style: TextStyle(
+                            isExpanded ? '收起' : '${comment.replyCount} 条回复',
+                            style: const TextStyle(
                               fontSize: 12,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => _showMoreMenu(context),
+                    child: Icon(
+                      Icons.more_vert,
+                      size: 18,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withAlpha(150),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 第十五批：展开子评论列表
+  Widget _buildExpandedSection(BuildContext context, WidgetRef ref) {
+    final asyncChildren = ref.watch(commentChildrenProvider(comment.id));
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(52, 8, 0, 0),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest
+              .withAlpha(80),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: asyncChildren.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.all(8),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ),
+          error: (e, _) => Padding(
+            padding: const EdgeInsets.all(8),
+            child: Text('加载失败: $e',
+                style: const TextStyle(fontSize: 12, color: AppColors.error)),
+          ),
+          data: (children) {
+            if (children.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.all(8),
+                child: Text('暂无回复',
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children.map((c) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            c.userName,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _formatTime(c.createdAt),
+                            style: TextStyle(
+                              fontSize: 10,
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
@@ -402,35 +565,15 @@ class _CommentTile extends StatelessWidget {
                           ),
                         ],
                       ),
-                    ),
-                    if (comment.replyCount > 0) ...[
-                      const SizedBox(width: 16),
-                      Text(
-                        '${comment.replyCount} 条回复',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.primary,
-                        ),
-                      ),
+                      const SizedBox(height: 2),
+                      Text(c.content, style: const TextStyle(fontSize: 13)),
                     ],
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () => _showMoreMenu(context),
-                      child: Icon(
-                        Icons.more_vert,
-                        size: 18,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withAlpha(150),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
       ),
     );
   }

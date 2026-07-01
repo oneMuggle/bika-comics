@@ -182,7 +182,7 @@ class _FriendPostDetailScreenState
                       child: Center(
                         child: Text(
                           '动态加载失败: ${asyncPost.error}',
-                          style: TextStyle(color: AppColors.error),
+                          style: const TextStyle(color: AppColors.error),
                         ),
                       ),
                     ),
@@ -210,8 +210,8 @@ class _FriendPostDetailScreenState
                   else if (_error != null)
                     _ErrorState(message: _error!, onRetry: _load)
                   else if (_comments.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
                       child: Center(
                         child: Text(
                           '还没有评论',
@@ -332,7 +332,7 @@ class _PostHeader extends StatelessWidget {
                             ),
                             child: Text(
                               post.user.title,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: AppColors.primary,
                                 fontSize: 11,
                               ),
@@ -343,7 +343,7 @@ class _PostHeader extends StatelessWidget {
                     ),
                     Text(
                       'LV${post.user.level} · ${_formatDateTime(post.createdAt)}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.secondaryText,
                       ),
@@ -398,7 +398,7 @@ class _PostHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Icon(
+              const Icon(
                 Icons.comment_outlined,
                 size: 16,
                 color: AppColors.secondaryText,
@@ -406,7 +406,7 @@ class _PostHeader extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 '${post.totalComments}',
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppColors.secondaryText,
                   fontSize: 12,
                 ),
@@ -414,7 +414,7 @@ class _PostHeader extends StatelessWidget {
               const Spacer(),
               Text(
                 'ID: ${post.id}',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 10,
                   color: AppColors.secondaryText,
                 ),
@@ -545,7 +545,7 @@ class _CommentTile extends StatelessWidget {
                         ),
                         child: Text(
                           comment.user.title,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: AppColors.primary,
                             fontSize: 11,
                           ),
@@ -555,7 +555,7 @@ class _CommentTile extends StatelessWidget {
                     const Spacer(),
                     Text(
                       _formatDate(comment.createdAt),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 11,
                         color: AppColors.secondaryText,
                       ),
@@ -580,7 +580,7 @@ class _CommentTile extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         '${comment.totalLikes}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.secondaryText,
                         ),
@@ -613,14 +613,14 @@ class _ErrorState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
               '加载失败: $message',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.secondaryText),
+              style: const TextStyle(color: AppColors.secondaryText),
             ),
           ),
           const SizedBox(height: 12),

@@ -6,10 +6,12 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/api/api_client.dart';
 import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
+import '../../reader/data/history_repository.dart';
 import '../../reader/presentation/reader_screen.dart';
 import '../data/comic_repository.dart';
 import '../domain/comic_model.dart';
 import 'comments_screen.dart';
+import 'search_screen.dart';
 import '../../download/data/download_repository.dart';
 import '../../download/presentation/download_screen.dart';
 
@@ -107,11 +109,11 @@ class ComicDetailScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              const Row(
                 children: [
                   Icon(Icons.recommend, color: AppColors.primary, size: 20),
-                  const SizedBox(width: 6),
-                  const Text(
+                  SizedBox(width: 6),
+                  Text(
                     '相关推荐',
                     style: TextStyle(
                       fontSize: 16,
@@ -195,10 +197,14 @@ class ComicDetailScreen extends ConsumerWidget {
           icon: const Icon(Icons.share),
           tooltip: '分享',
           onPressed: () {
+            // 第十五批：分享链接优先使用 pica+id 格式（与桌面端对齐）
+            final shareLink = comic.shareId.isNotEmpty
+                ? 'pica+${comic.shareId}'
+                : 'https://picacomic.com/comic/${comic.id}';
             Share.share(
               '${comic.title}\n'
               '${comic.description.isNotEmpty ? "${comic.description}\n" : ""}'
-              'https://picacomic.com/comic/${comic.id}',
+              '$shareLink',
               subject: comic.title,
             );
           },
@@ -213,46 +219,193 @@ class ComicDetailScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            comic.title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 8),
           Row(
             children: [
-              Icon(Icons.person, size: 16, color: AppColors.secondaryText),
-              const SizedBox(width: 4),
-              Text(comic.author, style: TextStyle(color: AppColors.secondaryText)),
-              const SizedBox(width: 16),
-              Icon(Icons.visibility, size: 16, color: AppColors.secondaryText),
-              const SizedBox(width: 4),
-              Text('${comic.totalViews}',
-                  style: TextStyle(color: AppColors.secondaryText)),
+              Expanded(
+                child: Text(
+                  comic.title,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ),
+              // 第十五批：完结标记
+              if (comic.finished)
+                Container(
+                  margin: const EdgeInsets.only(left: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withAlpha(40),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: AppColors.primary, width: 1),
+                  ),
+                  child: const Text(
+                    '已完结',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: comic.tags
-                .take(5)
-                .map((tag) => Chip(
-                      label: Text(tag, style: const TextStyle(fontSize: 12)),
-                      padding: EdgeInsets.zero,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ))
-                .toList(),
+          const SizedBox(height: 8),
+          // 第十五批：作者 / 上传者 / 汉化组 三行式元数据
+          if (comic.author.isNotEmpty)
+            _buildMetaRow(
+              context,
+              icon: Icons.person,
+              label: '作者',
+              value: comic.author,
+              onTap: () => _openSearch(context, comic.author),
+            ),
+          if (comic.creator.isNotEmpty)
+            _buildMetaRow(
+              context,
+              icon: Icons.upload,
+              label: '上传',
+              value: comic.creator,
+              onTap: () => _openSearch(context, comic.creator),
+            ),
+          if (comic.chineseTeam.isNotEmpty)
+            _buildMetaRow(
+              context,
+              icon: Icons.translate,
+              label: '汉化',
+              value: comic.chineseTeam,
+              onTap: () => _openSearch(context, comic.chineseTeam),
+            ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(Icons.visibility, size: 16, color: AppColors.secondaryText),
+              const SizedBox(width: 4),
+              Text('${comic.totalViews}',
+                  style: const TextStyle(color: AppColors.secondaryText)),
+              const SizedBox(width: 16),
+              const Icon(Icons.favorite, size: 16, color: AppColors.secondaryText),
+              const SizedBox(width: 4),
+              Text('${comic.likeCount}',
+                  style: const TextStyle(color: AppColors.secondaryText)),
+              if (comic.pagesCount > 0) ...[
+                const SizedBox(width: 16),
+                const Icon(Icons.menu_book, size: 16, color: AppColors.secondaryText),
+                const SizedBox(width: 4),
+                Text('${comic.pagesCount}页',
+                    style: const TextStyle(color: AppColors.secondaryText)),
+              ],
+            ],
           ),
+          if (comic.updatedAt != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              '更新于 ${_formatDate(comic.updatedAt!)}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.secondaryText,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          // 第十五批：标签可点击 → 搜索；不再 take(5)，全部展示
+          if (comic.tags.isNotEmpty)
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: comic.tags
+                  .map((tag) => ActionChip(
+                        label: Text(tag, style: const TextStyle(fontSize: 12)),
+                        padding: EdgeInsets.zero,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        onPressed: () => _openSearch(context, tag),
+                      ))
+                  .toList(),
+            ),
           const SizedBox(height: 12),
           Text(
             comic.description,
-            style: TextStyle(color: AppColors.secondaryText, fontSize: 14),
+            style: const TextStyle(color: AppColors.secondaryText, fontSize: 14),
           ),
         ],
       ),
     );
+  }
+
+  /// 第十五批：元数据行（图标 + 标签 + 值；可选 onTap）
+  Widget _buildMetaRow(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    VoidCallback? onTap,
+  }) {
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: AppColors.secondaryText),
+          const SizedBox(width: 4),
+          Text(
+            '$label:',
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.secondaryText,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+    if (onTap == null) return content;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: content,
+    );
+  }
+
+  /// 第十五批：打开搜索页（带初始关键词）
+  void _openSearch(BuildContext context, String keyword) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SearchScreen(initialKeyword: keyword),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inDays < 1) return '今天';
+    if (diff.inDays < 30) return '${diff.inDays}天前';
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+  }
+
+  /// 第十五批：根据远程 episodeId 在列表里找下标（找不到时返回 0）
+  int _findEpisodeIndex(List<Episode> episodes, String remoteEpisodeId) {
+    for (int i = 0; i < episodes.length; i++) {
+      if (episodes[i].id == remoteEpisodeId) return i;
+    }
+    return 0;
+  }
+
+  /// 第十五批：根据是否有历史决定按钮文案
+  String _readingLabel(ComicDetail detail, BuildContext context) {
+    // 注：context 在 onPressed 异步回调里没用，但保留以备扩展
+    final count = detail.comic.episodeCount;
+    return '开始阅读 ($count章)';
   }
 
   Widget _buildActionButtons(BuildContext context, ComicDetail detail) {
@@ -264,19 +417,28 @@ class ComicDetailScreen extends ConsumerWidget {
         children: [
           Expanded(
             child: FilledButton.icon(
-              onPressed: () {
+              onPressed: () async {
+                // 第十五批：先查历史决定 initialPage
+                final history = await HistoryRepository.instance
+                    .getContinueReadingForRemoteComicId(detail.comic.id);
+                final initialEpisodeIndex = history == null
+                    ? 0
+                    : _findEpisodeIndex(detail.episodes, history.remoteEpisodeId);
+                final initialPage = history?.lastPage ?? 0;
+                if (!context.mounted) return;
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => ReaderScreen(
                       comicId: detail.comic.id,
                       episodes: detail.episodes,
-                      initialEpisodeIndex: 0,
+                      initialEpisodeIndex: initialEpisodeIndex.clamp(0, detail.episodes.length - 1),
+                      initialPage: initialPage,
                     ),
                   ),
                 );
               },
               icon: const Icon(Icons.play_arrow),
-              label: Text('开始阅读 (${detail.comic.episodeCount}章)'),
+              label: Text(_readingLabel(detail, context)),
             ),
           ),
           const SizedBox(width: 8),

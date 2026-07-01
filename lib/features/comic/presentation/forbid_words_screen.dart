@@ -106,13 +106,13 @@ class _ForbidWordsScreenState extends ConsumerState<ForbidWordsScreen> {
           // ============== 屏蔽词列表 ==============
           Text(
             '已添加 ${state.customWords.length} 个屏蔽词',
-            style: TextStyle(color: AppColors.secondaryText, fontSize: 13),
+            style: const TextStyle(color: AppColors.secondaryText, fontSize: 13),
           ),
           const SizedBox(height: 8),
           if (state.customWords.isEmpty)
-            Card(
+            const Card(
               child: Padding(
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.all(24),
                 child: Center(
                   child: Text(
                     '暂无屏蔽词',
@@ -148,7 +148,7 @@ class _ForbidWordsScreenState extends ConsumerState<ForbidWordsScreen> {
             Center(
               child: Text(
                 '当前有 ${state.selected.length} 个屏蔽词生效中',
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w600,
                 ),

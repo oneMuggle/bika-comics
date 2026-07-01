@@ -98,7 +98,7 @@ class _ComicRankTab extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
             const SizedBox(height: 16),
             Text('加载失败: $error'),
             const SizedBox(height: 16),
@@ -221,7 +221,7 @@ class _RankCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       comic.author,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.secondaryText,
                         fontSize: 12,
                       ),
@@ -231,23 +231,23 @@ class _RankCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.visibility,
+                        const Icon(Icons.visibility,
                             size: 14, color: AppColors.secondaryText),
                         const SizedBox(width: 4),
                         Text(
                           '${comic.totalViews}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: AppColors.secondaryText,
                             fontSize: 12,
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Icon(Icons.favorite,
+                        const Icon(Icons.favorite,
                             size: 14, color: AppColors.error),
                         const SizedBox(width: 4),
                         Text(
                           '${comic.likeCount}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: AppColors.secondaryText,
                             fontSize: 12,
                           ),

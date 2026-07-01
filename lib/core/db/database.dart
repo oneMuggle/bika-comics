@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -87,6 +88,12 @@ class SearchHistory extends Table {
 @DriftDatabase(tables: [Comics, Episodes, History, Downloads, DownloadProgress, SearchHistory])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
+
+  /// 第十五批：测试用构造 — 接受一个自定义 QueryExecutor
+  /// （如 in-memory NativeDatabase），不触碰文件系统。
+  /// 仅供 `test/` 目录调用，不要在生产代码里使用。
+  @visibleForTesting
+  AppDatabase.forTesting(super.executor);
 
   @override
   int get schemaVersion => 2;
@@ -286,5 +293,12 @@ class DatabaseHolder {
 
   static set instance(AppDatabase value) {
     _instance = value;
+  }
+
+  /// 第十五批：测试入口 — 允许 `test/` 目录把数据库换成 in-memory 实例。
+  /// 生产代码切勿调用此方法。
+  @visibleForTesting
+  static void overrideForTest(AppDatabase db) {
+    _instance = db;
   }
 }

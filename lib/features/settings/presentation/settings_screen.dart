@@ -122,7 +122,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         children: [
           // 服务器设置
-          _SectionHeader(title: '服务器'),
+          const _SectionHeader(title: '服务器'),
           ListTile(
             leading: const Icon(Icons.dns),
             title: const Text('API 地址'),
@@ -133,7 +133,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(),
 
           // 代理设置
-          _SectionHeader(title: AppStrings.proxySettings),
+          const _SectionHeader(title: AppStrings.proxySettings),
           ListTile(
             leading: const Icon(Icons.vpn_key),
             title: const Text(AppStrings.proxyType),
@@ -158,7 +158,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(),
 
           // 主题
-          _SectionHeader(title: AppStrings.theme),
+          const _SectionHeader(title: AppStrings.theme),
           ListTile(
             leading: const Icon(Icons.palette),
             title: const Text('主题模式'),
@@ -169,7 +169,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(),
 
           // 存储
-          _SectionHeader(title: '存储'),
+          const _SectionHeader(title: '存储'),
           ListTile(
             leading: const Icon(Icons.delete_sweep),
             title: const Text(AppStrings.clearCache),
@@ -196,7 +196,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(),
 
           // 网络测速
-          _SectionHeader(title: '网络'),
+          const _SectionHeader(title: '网络'),
           ListTile(
             leading: const Icon(Icons.network_check),
             title: const Text(AppStrings.speedTest),
@@ -209,7 +209,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Divider(),
 
           // 搜索
-          _SectionHeader(title: '搜索'),
+          const _SectionHeader(title: '搜索'),
           ListTile(
             leading: const Icon(Icons.block),
             title: const Text('搜索屏蔽词'),
@@ -230,7 +230,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
 
           // 关于
-          _SectionHeader(title: AppStrings.about),
+          const _SectionHeader(title: AppStrings.about),
           ListTile(
             leading: const Icon(Icons.help_outline),
             title: const Text('帮助 / 关于'),
@@ -429,7 +429,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Text(
         title,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 12,
           color: AppColors.primary,
           fontWeight: FontWeight.bold,

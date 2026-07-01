@@ -2,9 +2,16 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/api/api_client.dart';
 import '../../../core/db/database.dart';
+import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
-import '../../comic/presentation/comic_detail_screen.dart';
+// 注：comic_model 里的 Episode 与 database.dart 中的同名 Drift 类冲突，
+// 这里只用 comic_model 的 Episode（用于 API 响应解析），
+// 因此通过前缀 import 避免歧义。
+import '../../comic/domain/comic_model.dart' as cm;
+import '../../reader/data/history_repository.dart';
+import '../../reader/presentation/reader_screen.dart';
 
 /// 历史记录 Provider
 /// Returns list of (history entry, remote comicId) tuples
@@ -88,7 +95,7 @@ class HistoryScreen extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 48, color: AppColors.error),
+              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
               const SizedBox(height: 16),
               Text('加载失败: $e'),
               FilledButton(
@@ -125,14 +132,76 @@ class HistoryScreen extends ConsumerWidget {
 }
 
 /// 单条历史记录
-class _HistoryTile extends StatelessWidget {
+class _HistoryTile extends ConsumerWidget {
   final HistoryWithRemoteId record;
   final VoidCallback onDelete;
 
   const _HistoryTile({required this.record, required this.onDelete});
 
+  /// 第十五批：点击历史记录 → 直接打开阅读器，跳到上次阅读位置
+  ///
+  /// 步骤：
+  /// 1. 拉取章节列表（必须 — 阅读器构造时就需要 episodes）
+  /// 2. 找历史中保存的 episode 下标 + lastPage
+  /// 3. push ReaderScreen
+  /// 任一失败回退到详情页（用户可手动开始阅读）
+  Future<void> _continueReading(BuildContext context) async {
+    final remoteId = record.remoteId;
+    if (remoteId == null) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      // 拉章节列表
+      final api = ApiClient.instance;
+      final resp = await api.get(ApiEndpoints.episodes(remoteId));
+      final docs = (resp.data['data']['eps']['docs'] as List? ?? []);
+      final episodes =
+          docs.map((e) => cm.Episode.fromJson(e as Map<String, dynamic>)).toList();
+      if (episodes.isEmpty) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('该漫画暂无章节，无法恢复')),
+        );
+        return;
+      }
+
+      // 找历史位置
+      final history =
+          await HistoryRepository.instance.getContinueReadingForRemoteComicId(
+        remoteId,
+      );
+      int initialIndex = 0;
+      int initialPage = 0;
+      if (history != null) {
+        for (int i = 0; i < episodes.length; i++) {
+          if (episodes[i].id == history.remoteEpisodeId) {
+            initialIndex = i;
+            initialPage = history.lastPage;
+            break;
+          }
+        }
+      }
+
+      if (!context.mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ReaderScreen(
+            comicId: remoteId,
+            episodes: episodes,
+            initialEpisodeIndex: initialIndex,
+            initialPage: initialPage,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('恢复失败: $e')),
+      );
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final title = record.title;
     final coverUrl = record.coverUrl;
     final history = record.history;
@@ -152,15 +221,7 @@ class _HistoryTile extends StatelessWidget {
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),
         child: InkWell(
-          onTap: remoteId != null
-              ? () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => ComicDetailScreen(comicId: remoteId),
-                    ),
-                  );
-                }
-              : null,
+          onTap: remoteId != null ? () => _continueReading(context) : null,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(12),

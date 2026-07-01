@@ -300,7 +300,7 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen> {
                         const SizedBox(height: 2),
                         Text(
                           task.author!,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.secondaryText,
                           ),

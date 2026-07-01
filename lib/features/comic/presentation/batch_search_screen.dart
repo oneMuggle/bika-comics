@@ -139,9 +139,9 @@ class _BatchSearchScreenState extends ConsumerState<BatchSearchScreen> {
           // ============= 结果区 =============
           Expanded(
             child: state.items.isEmpty
-                ? Center(
+                ? const Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: EdgeInsets.all(24),
                       child: Text(
                         '添加 1 个或多个关键词，然后点击「开始批量搜索」',
                         textAlign: TextAlign.center,
@@ -221,7 +221,7 @@ class _BatchItemCard extends ConsumerWidget {
               padding: const EdgeInsets.all(12),
               child: Text(
                 item.results.isEmpty ? '无结果' : '全部结果已被屏蔽词过滤',
-                style: TextStyle(color: AppColors.secondaryText),
+                style: const TextStyle(color: AppColors.secondaryText),
               ),
             )
           else

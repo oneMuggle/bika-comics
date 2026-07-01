@@ -57,7 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: [
                 const SizedBox(height: 40),
                 // Logo / 标题
-                Icon(
+                const Icon(
                   Icons.menu_book,
                   size: 80,
                   color: AppColors.primary,

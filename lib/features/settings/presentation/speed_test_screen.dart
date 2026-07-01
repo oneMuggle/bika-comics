@@ -50,7 +50,7 @@ class SpeedTestScreen extends ConsumerWidget {
                 ),
                 error: (e, st) => Column(
                   children: [
-                    Icon(Icons.error_outline,
+                    const Icon(Icons.error_outline,
                         size: 48, color: AppColors.error),
                     const SizedBox(height: 12),
                     Text('测速失败: $e',
@@ -70,7 +70,7 @@ class SpeedTestScreen extends ConsumerWidget {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(
                           '警告: ${result.error}',
-                          style: TextStyle(
+                          style: const TextStyle(
                               color: AppColors.error, fontSize: 12),
                           textAlign: TextAlign.center,
                         ),
@@ -133,7 +133,7 @@ class _MetricCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label,
-                      style: TextStyle(
+                      style: const TextStyle(
                           color: AppColors.secondaryText, fontSize: 12)),
                   const SizedBox(height: 4),
                   Text(value,

@@ -175,7 +175,7 @@ class _HelpScreenState extends ConsumerState<HelpScreen> {
                   ),
                 ]),
                 const SizedBox(height: 24),
-                Center(
+                const Center(
                   child: Text(
                     '哔咔漫画 · Flutter 移动端',
                     style: TextStyle(
@@ -203,15 +203,15 @@ class _HelpScreenState extends ConsumerState<HelpScreen> {
         ),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Icon(Icons.menu_book_rounded, size: 56, color: Colors.white),
-          const SizedBox(width: 16),
+          Icon(Icons.menu_book_rounded, size: 56, color: Colors.white),
+          SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   AppStrings.appName,
                   style: TextStyle(
                     color: Colors.white,
@@ -219,10 +219,10 @@ class _HelpScreenState extends ConsumerState<HelpScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   AppStrings.appDesc,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ],
             ),
@@ -240,7 +240,7 @@ class _HelpScreenState extends ConsumerState<HelpScreen> {
           padding: const EdgeInsets.fromLTRB(20, 8, 16, 4),
           child: Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               color: AppColors.secondaryText,
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -259,7 +259,7 @@ class _HelpScreenState extends ConsumerState<HelpScreen> {
       title: Text(key, style: const TextStyle(fontSize: 14)),
       trailing: Text(
         value,
-        style: TextStyle(
+        style: const TextStyle(
           color: AppColors.secondaryText,
           fontSize: 13,
         ),
@@ -278,7 +278,7 @@ class _HelpScreenState extends ConsumerState<HelpScreen> {
       title: Text(title, style: const TextStyle(fontSize: 14)),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
+        style: const TextStyle(
           color: AppColors.secondaryText,
           fontSize: 12,
         ),

@@ -152,7 +152,7 @@ class _AdvancedSearchScreenState extends ConsumerState<AdvancedSearchScreen> {
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
             child: Row(
               children: [
-                Icon(Icons.category, color: AppColors.primary, size: 18),
+                const Icon(Icons.category, color: AppColors.primary, size: 18),
                 const SizedBox(width: 6),
                 Text(
                   '选择分类 (${_selectedCategoryIds.length} 已选)',

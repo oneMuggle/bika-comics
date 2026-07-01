@@ -71,7 +71,7 @@ class _PicaShareResolverScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
+              const Text(
                 '输入 Pica 号（推荐位编号），解析为漫画 ID 后打开详情。',
                 style: TextStyle(color: AppColors.secondaryText, fontSize: 13),
               ),

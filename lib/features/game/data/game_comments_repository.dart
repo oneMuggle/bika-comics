@@ -174,12 +174,12 @@ class _GameCommentsSectionState extends ConsumerState<GameCommentsSection> {
           error: (e, _) => Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Text('评论加载失败: $e',
-                style: TextStyle(color: AppColors.secondaryText)),
+                style: const TextStyle(color: AppColors.secondaryText)),
           ),
           data: (list) {
             if (list.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
                 child: Text(
                   '还没有评论，来抢沙发吧',
                   style: TextStyle(color: AppColors.secondaryText),
@@ -287,7 +287,7 @@ class _CommentTile extends StatelessWidget {
                         ),
                         child: Text(
                           'Lv.${comment.userLevel}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 10,
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,
@@ -305,7 +305,7 @@ class _CommentTile extends StatelessWidget {
                   children: [
                     Text(
                       _formatTime(comment.createdAt),
-                      style: TextStyle(
+                      style: const TextStyle(
                           fontSize: 11, color: AppColors.secondaryText),
                     ),
                     const Spacer(),

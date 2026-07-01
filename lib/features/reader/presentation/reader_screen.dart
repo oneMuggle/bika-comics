@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +11,7 @@ import '../../../core/api/api_client.dart';
 import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../../comic/domain/comic_model.dart' as comic;
+import '../data/history_repository.dart';
 
 /// 阅读器 Provider
 final episodePagesProvider =
@@ -33,11 +36,16 @@ class ReaderScreen extends ConsumerStatefulWidget {
   final List<comic.Episode> episodes;
   final int initialEpisodeIndex;
 
+  /// 初始页码（0-indexed）— 第十五批：历史恢复点
+  /// 桌面端 `read_view.py` 在打开时传入保存的 pageIndex 启动阅读器
+  final int initialPage;
+
   const ReaderScreen({
     super.key,
     required this.comicId,
     required this.episodes,
     required this.initialEpisodeIndex,
+    this.initialPage = 0,
   });
 
   @override
@@ -52,11 +60,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   bool _showControls = true;
   _ReaderMode _readerMode = _ReaderMode.single;
 
+  /// 第十五批：历史保存节流计时器
+  Timer? _saveDebounce;
+  /// 是否已经把初始页码回滚过（只在首次 build 后回滚一次）
+  bool _didJumpToInitialPage = false;
+
   @override
   void initState() {
     super.initState();
     _currentEpisodeIndex = widget.initialEpisodeIndex;
-    _pageController = PageController();
+    _currentPage = widget.initialPage;
+    _pageController = PageController(initialPage: widget.initialPage);
     _verticalController = ScrollController();
     _verticalController.addListener(_onVerticalScroll);
 
@@ -66,12 +80,36 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   @override
   void dispose() {
+    // 最后一次保存 — 不等节流，避免用户退出阅读器时丢数据
+    _saveDebounce?.cancel();
+    _persistCurrentPosition();
     _verticalController.removeListener(_onVerticalScroll);
     _pageController.dispose();
     _verticalController.dispose();
     // 恢复状态栏
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
+  }
+
+  /// 第十五批：把 (comic, episode, page) 持久化到 history 表
+  /// 节流 500ms — 避免频繁写库
+  void _scheduleSavePosition() {
+    _saveDebounce?.cancel();
+    _saveDebounce = Timer(const Duration(milliseconds: 500), _persistCurrentPosition);
+  }
+
+  void _persistCurrentPosition() {
+    if (!mounted) return;
+    if (widget.episodes.isEmpty) return;
+    if (_currentEpisodeIndex < 0 || _currentEpisodeIndex >= widget.episodes.length) {
+      return;
+    }
+    final ep = widget.episodes[_currentEpisodeIndex];
+    HistoryRepository.instance.saveReadingPosition(
+      remoteComicId: widget.comicId,
+      remoteEpisodeId: ep.id,
+      page: _currentPage,
+    );
   }
 
   void _onVerticalScroll() {
@@ -84,7 +122,32 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     final newPage = (_verticalController.offset / pageHeight).floor();
     if (newPage != _currentPage) {
       setState(() => _currentPage = newPage);
+      _scheduleSavePosition();
     }
+  }
+
+  /// 第十五批：条状模式下恢复 initialPage 的滚动位置
+  ///
+  /// PageController(initialPage) 适用于 single 模式；
+  /// vertical controller 没有 initialScrollOffset（其实有，但需要在第一次 build 后才有 RenderBox.height），
+  /// 所以用 postFrameCallback 等 layout 完成后再滚。
+  void _restoreScrollPositionIfNeeded() {
+    if (_didJumpToInitialPage) return;
+    if (widget.initialPage <= 0) {
+      _didJumpToInitialPage = true;
+      return;
+    }
+    if (_readerMode != _ReaderMode.strip) {
+      _didJumpToInitialPage = true;
+      return;
+    }
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final h = renderBox.size.height;
+    if (h <= 0) return;
+    if (!_verticalController.hasClients) return;
+    _verticalController.jumpTo(widget.initialPage * h);
+    _didJumpToInitialPage = true;
   }
 
   comic.Episode get currentEpisode => widget.episodes[_currentEpisodeIndex];
@@ -95,6 +158,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       comicId: widget.comicId,
       episodeId: currentEpisode.id,
     )));
+
+    // 第十五批：条状模式恢复滚动位置 — 等首次 build 完成
+    if (!_didJumpToInitialPage && _readerMode == _ReaderMode.strip) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _restoreScrollPositionIfNeeded();
+      });
+    }
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -109,7 +179,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error, color: AppColors.error, size: 48),
+                  const Icon(Icons.error, color: AppColors.error, size: 48),
                   const SizedBox(height: 16),
                   Text('加载失败: $e',
                       style: const TextStyle(color: Colors.white)),
@@ -258,6 +328,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                   }
                                 }
                               }
+                              // 跳转后保存位置（节流）
+                              _scheduleSavePosition();
                             }
                           },
                           child: Container(
@@ -334,6 +406,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           },
           onPageChanged: (index) {
             setState(() => _currentPage = index);
+            _scheduleSavePosition();
           },
           scrollPhysics: const BouncingScrollPhysics(),
           backgroundDecoration: const BoxDecoration(color: Colors.black),
@@ -457,11 +530,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                     onTap: () {
                       Navigator.of(context).pop();
                       if (index != _currentEpisodeIndex) {
-                        setState(() => _currentEpisodeIndex = index);
+                        setState(() {
+                          _currentEpisodeIndex = index;
+                          _currentPage = 0;
+                        });
                         _pageController.jumpToPage(0);
                         if (_verticalController.hasClients) {
                           _verticalController.jumpTo(0);
                         }
+                        // 切换章节后立即保存（page = 0）
+                        _scheduleSavePosition();
                       }
                     },
                   );
@@ -491,6 +569,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         _pageController.jumpToPage(0);
       }
     }
+    _scheduleSavePosition();
   }
 }
 

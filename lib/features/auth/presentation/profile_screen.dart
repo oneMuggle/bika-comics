@@ -158,7 +158,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _buildUserHeader(AuthUser? user) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [AppColors.primary, AppColors.primaryDark],
         ),
@@ -260,7 +260,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          Icon(Icons.subject, color: AppColors.primary, size: 18),
+          const Icon(Icons.subject, color: AppColors.primary, size: 18),
           const SizedBox(width: 6),
           Text(
             title,
@@ -506,7 +506,7 @@ class _CommentTile extends StatelessWidget {
         child: c.userAvatar.isEmpty
             ? Text(
                 c.userName.isNotEmpty ? c.userName[0] : '?',
-                style: TextStyle(color: AppColors.primary),
+                style: const TextStyle(color: AppColors.primary),
               )
             : null,
       ),
