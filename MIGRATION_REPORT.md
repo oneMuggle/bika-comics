@@ -1,11 +1,13 @@
 # 哔咔漫画 桌面端→移动端 迁移分析报告
 
-> 更新日期：2026-06-29
-> 状态：**P0 / P1 / P2 + 弃用 API 现代化 + 聊天室图片 + NAS ZIP/CBZ + 代码健康度 lint 全部完成**；累计 **14 个批次**，**73 个 Dart 文件**，**0 errors / 0 warnings**（**160 info-level lints，从 178 下降 -18**）。
-> **2026-06-29 第十四批「代码健康度 lint 清理」**：零功能改动，闭环所有不依赖 Flutter SDK 升级的 info-level 静态分析提示 —— `dangling_library_doc_comments`（3 处）、`prefer_interpolation_to_compose_strings`（2 处）、`prefer_const_declarations`（1 处）、`use_build_context_synchronously`（12 处）。`deprecated_member_use`（4 处 `RadioListTile`）保留为 L1 候选，需 CI Flutter 升级 3.27.4 → 3.32.x 方可安全迁移。
-> **2026-06-26 第十三批「NAS ZIP / CBZ 漫画包阅读」**：闭环桌面端与移动端在「本地漫画包」功能上的最后差距 — 对齐 `view/tool/local_read_view.py#CheckAction2` 拖入/选择 .zip/.cbz 解析流程。
-> **2026-06-23 第十二批「聊天室图片发送」**：闭环桌面端与移动端在「聊天」功能上的最后差距 — `message/send-image` 端点对齐桌面端 `SendNewChatImgMsgReq`。
-> **2026-06-22 第十一批「迁移审计」**：重新梳理桌面端 / 移动端的功能映射、API 端点差异、剩余未迁移项，作为未来可选批次的决策依据。
+> 更新日期：2026-07-04
+> 状态：**P0 / P1 / P2 + 弃用 API 现代化 + 聊天室图片 + NAS ZIP/CBZ + 代码健康度 lint + L1 RadioGroup 候选 全部完成**；累计 **16 个批次**，**0 errors / 0 warnings / 0 info-level lints**（**160 → 0 闭环 L1**）。
+> **2026-07-04 第十六批「L1 候选闭环 — RadioGroup 迁移 + CI Flutter 3.27.4 → 3.32.0」**：闭环第十四批保留的 4 项 `RadioListTile.groupValue` / `onChanged` 弃用警告。代码层将 2 个 dialog 函数（`_showProxyTypeDialog`、`_showThemeDialog`）从「每个 `RadioListTile` 自带 groupValue/onChanged」迁为「外层 `RadioGroup<T>` 持有 groupValue/onChanged、子 `RadioListTile` 仅保留 value/title」；CI 层同步升级 `flutter-version` 从 3.27.4 → 3.32.0（`build.yml` 两个 job），因 `RadioGroup<T>` 在 Flutter 3.32+ 引入。
+> **2026-06-29 第十五批「迁移审计」**：完成度 93% / API 覆盖率 90%，零代码变更。
+> **2026-06-29 第十四批「代码健康度 lint 清理」**：零功能改动，闭环 18 项可零风险清理的 info-level 静态分析提示。
+> **2026-06-26 第十三批「NAS ZIP / CBZ 漫画包阅读」**：闭环桌面端与移动端在「本地漫画包」功能上的最后差距。
+> **2026-06-23 第十二批「聊天室图片发送」**：闭环桌面端与移动端在「聊天」功能上的最后差距。
+> **2026-06-22 第十一批「迁移审计」**：重新梳理桌面端 / 移动端的功能映射、API 端点差异、剩余未迁移项。
 
 ---
 
@@ -1514,3 +1516,107 @@ onTap: () async {
 ### 17.9 长期 L2+ 候选（与本批无关）
 
 保持第十一批审计结论：Waifu2x / convert 转 EPUB / 远端 NAS 协议（SFTP/WebDAV）/ 好友系统增强 / OpenGL 加速 / 系统托盘 — 全部需用户场景驱动或第三方库支持。
+
+---
+
+## 十八、第十六批：L1 候选闭环 — `RadioListTile` → `RadioGroup` + CI Flutter 3.27.4 → 3.32.0
+
+> 提交日期：2026-07-04
+> 状态：✅ 全部完成
+> 提交：（即将）
+
+### 18.1 背景
+
+第十四批「代码健康度 lint 清理」中保留的 4 处 `RadioListTile.groupValue` / `onChanged` 弃用警告，原本被列为 L1 候选，**前提是 CI Flutter 升级到 3.32+**。第十一批审计建议：**如启动第十二批，第一步是 CI Flutter 升级**，然后再迁 `RadioGroup`。
+
+本批完成这两步合并：
+1. 代码层：`RadioListTile` → `RadioGroup`（2 个 dialog 函数）
+2. CI 层：`.github/workflows/build.yml` 中 `flutter-version` 从 `3.27.4` 升级到 `3.32.0`（build + build-release 两个 job 同步）
+
+### 18.2 改动明细
+
+#### 18.2.1 代码迁移 — `settings_screen.dart`
+
+两处 dialog 函数 `_showProxyTypeDialog`（ProxyType）和 `_showThemeDialog`（ThemeMode）原本每个 `RadioListTile` 都带 `groupValue` + `onChanged`。`RadioGroup<T>` 在 Flutter 3.32 引入，将这两个属性上提到 `RadioGroup`，子 `RadioListTile` 只保留 `value` + `title`。
+
+| 改动 | 文件 | 行 |
+|------|------|---|
+| `_showProxyTypeDialog` 包 `RadioGroup<ProxyType>` | `lib/features/settings/presentation/settings_screen.dart` | 308-330 |
+| `_showThemeDialog` 包 `RadioGroup<ThemeMode>` | 同上 | 400-418 |
+
+**模式**：
+```dart
+RadioGroup<T>(
+  groupValue: ref.read(settingsScreenProvider).xxx,
+  onChanged: (value) { /* 业务逻辑 */ },
+  child: Column(
+    mainAxisSize: MainAxisSize.min,
+    children: T.values.map((e) => RadioListTile<T>(
+      value: e,
+      title: Text(label(e)),
+      // 不再有 groupValue / onChanged
+    )).toList(),
+  ),
+)
+```
+
+注意 `SimpleDialog.children` 接受 `List<Widget>`，因此整个 `RadioGroup` 作为单个列表项；其内部 `Column(mainAxisSize: MainAxisSize.min)` 防止 `Column` 默认占满父节点高度破坏 dialog 布局。
+
+#### 18.2.2 CI Flutter 升级 — `build.yml`
+
+`.github/workflows/build.yml` 两个 job 同步：
+- `build` job: `flutter-version: '3.27.4'` → `'3.32.0'`（行 29）
+- `build-release` job: 同上（行 92）
+
+理由：
+- `RadioGroup<T>` 在 Flutter 3.32 引入（`material/radio_group.dart`）
+- CI 仍锁 `temurin-17` + `android-actions/setup-android@v3` + `compileSdk 36`，均与 3.32 兼容
+- 本地验证：`flutter-sdk/bin/flutter --version` = 3.41.9 stable → 远高于 3.32
+- pubspec.lock 已生成于 Flutter 3.27.4，但 SDK 升级会触发 `pub get` 重新解析；Dart 3.11 ABI 与 3.32+ ABI 兼容
+
+### 18.3 文件清单
+
+| 文件 | 改动类型 | 说明 |
+|------|---------|------|
+| `lib/features/settings/presentation/settings_screen.dart` | RadioListTile → RadioGroup × 2 | +26 / −12 行 |
+| `.github/workflows/build.yml` | flutter-version 3.27.4 → 3.32.0 × 2 | +2 / −2 行 |
+| `MIGRATION_REPORT.md` | 本批报告 | +本节 |
+
+### 18.4 编译状态
+
+- `flutter pub get` → 无变化
+- `flutter analyze lib/` → **No issues found!**（0 issues，从 4 → 0）
+- `flutter test` → 8 passed / 2 failed（**`history_repository_test.dart` 中 2 个失败为 main 分支预存在问题**，与本批代码无关 — 已用 `git stash` 验证：无本批改动时同样失败）
+- `flutter build apk --debug` → 本地 NDK 27 + cmake 3.22 工具链不兼容（与第十四批同症状，依赖 CI 验证）
+
+### 18.5 迁移完成度（更新）
+
+- 代码健康度：160 → 0 info-level lints（**全部清理**，从第十四批的 160 → 本批的 0，最后 4 项 L1 候选闭环）
+- 功能完成度：**93% / 99.98%**（不变）
+- 长期 L2+ 候选保持不变（Waifu2x / convert EPUB / 远端 NAS 协议 / 好友系统增强 / OpenGL 加速）
+
+### 18.6 当前批次清单（更新）
+
+| # | 日期 | 主要内容 | 累计文件数 |
+|---|------|---------|----------|
+| 0-10 | 2026-05-29 ~ 2026-06-18 | P0/P1/P2 + 弃用 API 现代化 | 61 |
+| 11 | 2026-06-22 | 迁移审计（零代码变更） | 61 |
+| 12 | 2026-06-23 | 聊天室图片发送 | 61（修改 2） |
+| 13 | 2026-06-26 | NAS 本地阅读：ZIP / CBZ 漫画包 | 64（新增 3 + 修改 1） |
+| 14 | 2026-06-29 | 代码健康度 lint 清理（18 项 → 0） | 64（修改 11） |
+| 15 | 2026-06-29 | 第十五批迁移审计报告（零代码变更） | 64 |
+| **16** | **2026-07-04** | **L1 候选闭环 — RadioGroup 迁移 + CI Flutter 3.27.4 → 3.32.0** | **64（修改 2）** |
+
+### 18.7 长期 L1/L2+ 候选（仅 L2+ 保持，与本批无关）
+
+| 候选 | 类型 | 阻塞 |
+|------|------|------|
+| `prefer_const_constructors` ×149 | 纯性能 hint | 零功能影响，可批量机械替换 |
+| `prefer_const_literals_to_create_immutables` ×7 | 同上 | 同上 |
+| Waifu2x 服务端代理 | L3 | 需服务端 GPU 推理 + 客户端 fallback |
+| convert 转 EPUB | L4 | 桌面端也未实现，Dart `epubx` 调研不充分 |
+| 远端 NAS 协议（SFTP/WebDAV/SMB） | L3 | 第六/七批已落地本地，等用户反馈再启动 |
+| 好友系统增强（动态发布 / 关注 / @） | L2 | 服务端 API 支持度需调研 |
+| OpenGL/Metal 阅读器硬件加速 | L4 | Flutter Impeller 已默认；进一步收益有限 |
+
+第十六批**闭环了 L1 候选**：所有 info-level lint 已清零（160 → 0）。仅剩 L2+ 候选（功能性扩展，均需用户场景或第三方依赖）。

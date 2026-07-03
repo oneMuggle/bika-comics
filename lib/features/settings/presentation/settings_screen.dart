@@ -310,11 +310,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (context) => SimpleDialog(
         title: const Text(AppStrings.proxyType),
-        children: ProxyType.values.map((type) {
-          return RadioListTile<ProxyType>(
-            value: type,
+        children: [
+          RadioGroup<ProxyType>(
             groupValue: ref.read(settingsScreenProvider).proxyType,
-            title: Text(_proxyTypeLabel(type)),
             onChanged: (value) {
               ref.read(settingsScreenProvider.notifier).setProxy(
                     value!,
@@ -323,8 +321,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   );
               Navigator.pop(context);
             },
-          );
-        }).toList(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: ProxyType.values.map((type) {
+                return RadioListTile<ProxyType>(
+                  value: type,
+                  title: Text(_proxyTypeLabel(type)),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -402,17 +409,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (context) => SimpleDialog(
         title: const Text(AppStrings.theme),
-        children: ThemeMode.values.map((mode) {
-          return RadioListTile<ThemeMode>(
-            value: mode,
+        children: [
+          RadioGroup<ThemeMode>(
             groupValue: ref.read(settingsScreenProvider).themeMode,
-            title: Text(_themeModeLabel(mode)),
             onChanged: (value) {
               ref.read(settingsScreenProvider.notifier).setThemeMode(value!);
               Navigator.pop(context);
             },
-          );
-        }).toList(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: ThemeMode.values.map((mode) {
+                return RadioListTile<ThemeMode>(
+                  value: mode,
+                  title: Text(_themeModeLabel(mode)),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ),
     );
   }
