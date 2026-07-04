@@ -37,22 +37,22 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        # GitHub Actions 的 android-actions/setup-android@v3 偶发失败 (网络 / 缓存抖动)。
+        uses: android-actions/setup-android@v4
+        # GitHub Actions 的 android-actions/setup-android@v4 偶发失败 (网络 / 缓存抖动)。
         # 用 continue-on-error + 重试模式保证 build 流程稳定。
         continue-on-error: true
 
       - name: Retry Setup Android SDK
         if: steps.setup-android-sdk.outcome == 'failure'
         run: |
-          echo "::warning::第一次 android-actions/setup-android@v3 失败，重试中..."
+          echo "::warning::第一次 android-actions/setup-android@v4 失败，重试中..."
           sleep 15
           rm -rf /opt/android-sdk* 2>/dev/null || true
           rm -rf /usr/local/lib/android/sdk 2>/dev/null || true
 
       - name: Setup Android SDK (retry)
         if: steps.setup-android-sdk.outcome == 'failure'
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Accept Android Licenses
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
@@ -100,15 +100,15 @@ jobs:
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        # GitHub Actions 的 android-actions/setup-android@v3 偶发失败 (网络 / 缓存抖动)。
+        uses: android-actions/setup-android@v4
+        # GitHub Actions 的 android-actions/setup-android@v4 偶发失败 (网络 / 缓存抖动)。
         # 用 continue-on-error + 重试模式保证 build-release 流程稳定。
         continue-on-error: true
 
       - name: Retry Setup Android SDK
         if: steps.setup-android-sdk.outcome == 'failure'
         run: |
-          echo "::warning::第一次 android-actions/setup-android@v3 失败，重试中..."
+          echo "::warning::第一次 android-actions/setup-android@v4 失败，重试中..."
           sleep 15
           # 第二次：清理可能残留的 SDK 缓存后重试
           rm -rf /opt/android-sdk* 2>/dev/null || true
@@ -116,7 +116,7 @@ jobs:
 
       - name: Setup Android SDK (retry)
         if: steps.setup-android-sdk.outcome == 'failure'
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Verify Android SDK
         run: |
