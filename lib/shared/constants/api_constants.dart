@@ -90,6 +90,12 @@ class ApiEndpoints {
   static const String games = '/games';
   static const String game = '/games/{id}';
 
+  // 第十七批：第三方应用列表 (Pica Apps) — 对齐桌面端 GetAPPsReq
+  //   GET /pica-apps  → 返回 [{title, icon, url, ...}]
+  //   Pica Apps 是 Pica 官方在主站里推荐的第三方客户端/工具
+  //   点击通常跳转到对应应用市场或下载页
+  static const String picaApps = '/pica-apps';
+
   // 聊天室
   static const String chatRooms = '/chat';
   static const String chatMessages = '/chat/{id}/messages';

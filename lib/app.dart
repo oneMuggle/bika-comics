@@ -28,6 +28,7 @@ import 'features/home/presentation/home_screen.dart';
 import 'features/nas/presentation/nas_local_screen.dart';
 import 'features/chat/presentation/chat_room_screen.dart';
 import 'features/chat/presentation/chat_rooms_screen.dart';
+import 'features/pica_apps/presentation/pica_apps_screen.dart';
 import 'features/settings/presentation/settings_screen.dart';
 import 'features/settings/presentation/speed_test_screen.dart';
 import 'shared/constants/app_colors.dart';
@@ -121,6 +122,7 @@ class _PicacgAppState extends ConsumerState<PicacgApp> {
         },
         '/nas-local': (context) => const NasLocalScreen(),
         '/help': (context) => const HelpScreen(),
+        '/pica-apps': (context) => const PicaAppsScreen(),
       },
     );
   }
@@ -216,6 +218,14 @@ class _MainShellState extends State<MainShell> {
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/games');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.apps),
+              title: const Text('Pica Apps'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/pica-apps');
               },
             ),
             ListTile(
