@@ -121,11 +121,17 @@ docs/migration-report-batch17.md                          |  本报告 (NEW)
 
 ---
 
-**生成时间**: 2026-07-05 02:23 CST (Hermes Router Agent cron 任务)
+**生成时间**: 2026-07-05 02:35 CST (Hermes Router Agent cron 任务)
 **推送记录**:
 - 591427b (Pica Apps 代码 + 报告)
 - 9839ed7 (CI build.yml v3→v4)
+- 88f94ed  (报告 CI 状态最终结论)
 
 **审计依据**: `picacg-qt-temp/src/server/req.py` 60 个 Req 类 + `bika-comics/lib/features/` 14 个 Flutter feature 模块
 
-**遗留事项**: Build APK 在 9839ed7 仍有未诊断的工具链失败 — 与本批代码无关, 需管理员读 logs / 排查 Flutter 3.32 + NDK 27 + AGP/Gradle 配置.
+**遗留事项 (本批无法自动解决)**:
+- Build APK 在 v3→v4 升级后仍失败, 跑 2m48s (与 cmake 3.22 立即失败模式不同)
+- 与 Pica Apps 代码无关, 而是更深层的 Flutter 3.32 + NDK 27 + AGP/Gradle 工具链问题
+- 推测: NDK 27 与 cmake 3.31 + NDK 27 在 AGP 8.x 下需要 `android.ndkVersion` 显式覆盖 (本地 NDK 是 27.0.12077973)
+- GitHub Actions logs 端点需 admin 权限, 公开 API 不可读.
+- **需要管理员协助**: 读取 CI logs (https://github.com/oneMuggle/bika-comics/actions/runs/28715345930) 或进一步锁定 NDK 版本
