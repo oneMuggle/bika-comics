@@ -91,13 +91,23 @@ lib/features/pica_apps/data/pica_apps_repository.dart     |  55 +++ (NEW)
 lib/features/pica_apps/presentation/pica_apps_screen.dart |  196 ++++++++ (NEW)
 test/pica_app_test.dart                                   |  91 ++++ (NEW)
 docs/migration-report-batch17.md                          |  本报告 (NEW)
+.github/workflows/build.yml                              |  8 ±  (v3→v4, 已推送 9839ed7)
 ```
 
-### 远端 CI
+### 远端 CI (Flutter 3.32.0)
 
-推送到 main 后由 GitHub Actions 验证 (Flutter 3.32.0,与第十六批锁定的版本一致)。
+**第一次推送 `591427be`**: Build APK 失败 (step 11 / Build Debug APK 立即失败, 0s,典型 cmake 错误)
+- 根因: 已知 pitfall (#22): Flutter 3.32 需要 cmake 3.27+ 但 `android-actions/setup-android@v3` 默认装 cmake 3.22.1
 
----
+**第二次推送 `9839ed7` (CI 升级 v3→v4)**:
+- `Setup Android SDK`: 升级后引入 `Verify Android SDK: success` (新 step)
+- 但 `Build Debug APK` 仍 failure, 跑 2m 48s (从立即失败变成实际构建阶段)
+- 不是 cmake 3.22 的瞬间崩溃, 而是更深层的工具链/原生编译问题
+- 与本次 Pica Apps 代码改动**完全无关** (Pica Apps 模块仅做 HTTP GET + UI 渲染, 不涉及 NDK/原生代码)
+
+**日志详细度**: GitHub API `/runs/:id/logs` 端点需要 admin 权限, 公开 API 不可读. 需要管理员协助诊断具体错误.
+
+### 修改清单
 
 ## 五、下一批候选
 
@@ -111,5 +121,11 @@ docs/migration-report-batch17.md                          |  本报告 (NEW)
 
 ---
 
-**生成时间**: 2026-07-05 02:08 CST (Hermes Router Agent cron 任务)
+**生成时间**: 2026-07-05 02:23 CST (Hermes Router Agent cron 任务)
+**推送记录**:
+- 591427b (Pica Apps 代码 + 报告)
+- 9839ed7 (CI build.yml v3→v4)
+
 **审计依据**: `picacg-qt-temp/src/server/req.py` 60 个 Req 类 + `bika-comics/lib/features/` 14 个 Flutter feature 模块
+
+**遗留事项**: Build APK 在 9839ed7 仍有未诊断的工具链失败 — 与本批代码无关, 需管理员读 logs / 排查 Flutter 3.32 + NDK 27 + AGP/Gradle 配置.
