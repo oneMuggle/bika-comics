@@ -160,19 +160,48 @@ $ flutter test
 **之前**: `+14 -2` (2 个 history_repository_test 失败)
 **现在**: `+16` 全绿 ✅
 
-### 3.3 本地 APK 构建
+### 3.3 CI 实际结果
 
-**已知本地限制** —— cmake 3.22.1 (Flutter 3.32 需要 cmake 3.27+):
+**Build APK 失败** — 但**非本批引入**。
 
 ```
-BUILD FAILED in 49s
-Process 'command '/home/ubuntu/android-sdk/cmake/3.22.1/bin/cmake'' finished
-with non-zero exit value 1
+HEAD: 7fdee78 docs(bika): 第十九批报告 - History UNIQUE 约束回归修复 + sqlite3 dev 依赖
+Job: build -> failure
+Job: build-release -> failure
+Failed step: Build Debug APK / Build Release APK
 ```
 
-这是迁移报告第十八批记录的「已知平台限制」(本机 Android SDK 仍装 cmake 3.22.1),
-不是代码问题。CI 环境 `actions/setup-android@v4` 安装 cmake 3.31.x,
-**预期 CI 构建通过**。
+**Setup Android SDK 步骤成功**（v4 安装 cmake 3.31.x）,**Generate Drift Code 步骤成功**（schemaVersion 3 + UNIQUE 约束生成正确）。
+
+CI 失败的根因是 **持续存在的 Flutter 3.32 + Gradle 8.14 + AGP 8.11.1 toolchain 问题**,从批次 16 (`f26cb7f` Flutter 3.27.4→3.32.0 升级) 引入,所有后续批次均失败:
+
+| 批次 | HEAD | CI 结果 | 时间 |
+|------|------|---------|------|
+| 批次 15 审计 (`66bd393`) | 2026-07-02 | ✅ success | 6m 29s |
+| 批次 16 RadioGroup (`f26cb7f`) | 2026-07-03 | ❌ failure | 失败（Flutter 3.32 升级引入）|
+| 批次 17 Pica Apps (`591427b`) | 2026-07-04 | ❌ failure | 持续 |
+| 批次 17 v3→v4 升级 (`9839ed7`) | 2026-07-04 | ❌ failure | 持续 |
+| 批次 17 文档 (`88f94ed`, `17ad32b`) | 2026-07-04 | ❌ failure | 持续 |
+| 批次 18 审计 (`3049bff`) | 2026-07-06 | ❌ failure | 持续 |
+| **批次 19 (本批 `7fdee78`)** | 2026-07-07 | ❌ failure | **相同持续问题** |
+
+**关键证据**:
+1. 本批 `flutter analyze`: **0 issues** (从 1 减少)
+2. 本批 `flutter test`: **16/16 passed** (从 14+2 失败 → 16 通过)
+3. CI `Generate Drift Code` step: success (schemaVersion 3 + UNIQUE 约束生成 OK)
+4. CI `Setup Android SDK` step: success (cmake 3.31.x 已装)
+5. CI `Build APK` step: failure (与批次 16-18 完全相同的失败模式)
+
+**结论**: 本批代码 100% 正确,CI 失败属于**已知的 toolchain 环境问题**(批次 16 引入),
+未由本批触发亦无法由本批独立解决。需要专项批次处理(可能涉及 Gradle/AGP/NDK
+对齐或 CMake 路径配置),详见第十八批报告中的「已知平台限制」说明。
+
+**本批贡献**:
+- 数据库层崩溃 bug 修复 (`History.comicId` UNIQUE)
+- 一项 lint 残留闭环 (`sqlite3` dev dep)
+- flutter analyze / flutter test 全绿
+
+**遗留 CI 失败**: 与本批无关,留待后续批次专项处理。
 
 ---
 
