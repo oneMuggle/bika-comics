@@ -884,7 +884,7 @@ class $HistoryTable extends History with TableInfo<$HistoryTable, HistoryData> {
       type: DriftSqlType.int,
       requiredDuringInsert: true,
       defaultConstraints:
-          GeneratedColumn.constraintIsAlways('REFERENCES comics (id)'));
+          GeneratedColumn.constraintIsAlways('UNIQUE REFERENCES comics (id)'));
   static const VerificationMeta _episodeIdMeta =
       const VerificationMeta('episodeId');
   @override

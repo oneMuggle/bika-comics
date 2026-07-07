@@ -34,9 +34,14 @@ class Episodes extends Table {
 }
 
 /// 阅读历史表
+///
+/// 第十九批：每个漫画只保留一条「当前位置」记录（最新一次阅读）。
+/// comicId 加 UNIQUE 约束后，`upsertHistory` 配合 `InsertMode.insertOrReplace`
+/// 才能正确做「upsert」语义，否则会因为 autoincrement 主键一直插入新行，
+/// 导致 `getHistoryForComic` 用 `getSingleOrNull` 查询时抛 "found more than one"。
 class History extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get comicId => integer().references(Comics, #id)();
+  IntColumn get comicId => integer().unique().references(Comics, #id)();
   IntColumn get episodeId => integer().references(Episodes, #id)();
   IntColumn get lastPage => integer().withDefault(const Constant(0))();
   DateTimeColumn get lastReadAt => dateTime()();
@@ -96,7 +101,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -105,7 +110,13 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
       },
       onUpgrade: (Migrator m, int from, int to) async {
-        // 迁移逻辑
+        // 第十九批：v2 -> v3 给 history.comicId 加 UNIQUE 约束。
+        // 历史表只存每本漫画的最新阅读位置,丢一条旧数据不影响功能,
+        // 这里直接 drop + recreate。
+        if (from < 3) {
+          await m.deleteTable('history');
+          await m.createTable(history);
+        }
       },
     );
   }
