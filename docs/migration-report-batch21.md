@@ -37,13 +37,7 @@
 - name: Setup Android SDK
   uses: android-actions/setup-android@v4
   with:
-    packages: |
-      cmdline-tools;latest
-      platform-tools
-      platforms;android-36
-      build-tools;36.0.0
-      ndk;27.0.12077973
-      cmake;3.22.1
+    packages: cmdline-tools;latest platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.0.12077973 cmake;3.22.1
   continue-on-error: true
 ```
 
@@ -52,6 +46,41 @@
 #### 2.2.2 `build-release job`（line 126-160）
 
 两处 `android-actions/setup-android@v4` 调用都加上同样的 `with.packages` 块。
+
+### 2.3 二次修正（CI 反馈驱动）
+
+第一版用了 YAML literal block（`|`）多行格式：
+
+```yaml
+with:
+  packages: |
+    cmdline-tools;latest
+    platform-tools
+    ...
+```
+
+但 `android-actions/setup-android@v4` 的 `dist/index.js` 用 **`.split(" ")`** 解析 packages（不是 split newline）：
+
+```js
+// dist/index.js L22812
+const packages = getInput("packages", { required: false }).split(" ").map(function(str) {
+  return str.trim();
+}).filter(...);
+for (const pkg of packages) {
+  await callSdkManager(sdkManagerExe, pkg);
+}
+```
+
+多行 YAML 块作为单一字符串传入，整段被当成单个 package 名传给 sdkmanager → 安装失败但 **build step 耗时仍正常**（因为 Setup SDK step 极快失败/跳过）。
+
+**修正**：改为单行空格分隔：
+
+```yaml
+with:
+  packages: cmdline-tools;latest platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.0.12077973 cmake;3.22.1
+```
+
+第二次推送（commit 待完成）应能看到 Setup Android SDK step 耗时从 7-12s 升到 90-120s（NDK 安装通常 ~60s）。
 
 ---
 

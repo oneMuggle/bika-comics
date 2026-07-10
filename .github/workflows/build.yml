@@ -46,14 +46,11 @@ jobs:
         # （"Could not find toolchain file: NDK/build/cmake/android.toolchain.cmake"），
         # Build APK step 耗时从 258s 降到 169s（失败前置退出）。
         # 显式在 Setup 阶段装好 NDK + cmake 可以避免此 race。
+        #
+        # 注意：setup-android@v4 的 packages 解析用 split(" ")（空格分隔），
+        # 不能用 YAML 块（|）多行格式。必须单行空格分隔。
         with:
-          packages: |
-            cmdline-tools;latest
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
-            ndk;27.0.12077973
-            cmake;3.22.1
+          packages: cmdline-tools;latest platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.0.12077973 cmake;3.22.1
         # GitHub Actions 的 android-actions/setup-android@v4 偶发失败 (网络 / 缓存抖动)。
         # 用 continue-on-error + 重试模式保证 build 流程稳定。
         continue-on-error: true
@@ -70,13 +67,7 @@ jobs:
         if: steps.setup-android-sdk.outcome == 'failure'
         uses: android-actions/setup-android@v4
         with:
-          packages: |
-            cmdline-tools;latest
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
-            ndk;27.0.12077973
-            cmake;3.22.1
+          packages: cmdline-tools;latest platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.0.12077973 cmake;3.22.1
 
       - name: Accept Android Licenses
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
@@ -126,14 +117,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
         # 第二十一批（2026-07-11）：显式安装 NDK + cmake，详见 build job 同名 step 注释。
+        # packages 必须是单行空格分隔（v4 内部用 split(" ") 解析）。
         with:
-          packages: |
-            cmdline-tools;latest
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
-            ndk;27.0.12077973
-            cmake;3.22.1
+          packages: cmdline-tools;latest platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.0.12077973 cmake;3.22.1
         # GitHub Actions 的 android-actions/setup-android@v4 偶发失败 (网络 / 缓存抖动)。
         # 用 continue-on-error + 重试模式保证 build-release 流程稳定。
         continue-on-error: true
@@ -151,13 +137,7 @@ jobs:
         if: steps.setup-android-sdk.outcome == 'failure'
         uses: android-actions/setup-android@v4
         with:
-          packages: |
-            cmdline-tools;latest
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
-            ndk;27.0.12077973
-            cmake;3.22.1
+          packages: cmdline-tools;latest platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.0.12077973 cmake;3.22.1
 
       - name: Verify Android SDK
         run: |
