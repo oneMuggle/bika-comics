@@ -260,10 +260,46 @@ git push origin main
 - **flutter analyze**：0 issues
 - **flutter test**：16/16 passed
 - **本批专项**：CI 工具链修复（NDK 显式安装）
-- **预期 CI 状态**：待 CI 验证（首次 Setup Android SDK 步骤因 +3 个 packages 包预计耗时 +60-90s）
+- **CI 验证结果（v1 多行格式）**：Build APK 仍失败，Setup Android SDK 仅 7-12s（NDK 未安装）
+- **CI 验证结果（v2 单行空格格式）**：Build APK 仍失败，Setup Android SDK 升至 34-47s（NDK 实际安装），Build APK = 157-163s（与失败基线 169s 几乎一致）
 
-## 七、推荐下一步（CI 验证后）
+## 七、CI 失败根因深化（v2 反馈驱动）
 
-1. **CI 成功**：继续第二十二批，可启动 `prefer_const_constructors` ×149 等性能 hint 批量清理
-2. **CI 仍失败**（cmake 3.22.1 仍不兼容 Flutter 3.32）：升级 `cmake;3.27.0` 或回落 Flutter 3.27.4 + 恢复 RadioListTile 写法
-3. **CI 失败原因不同**（NDK 下载失败）：改用 sdkmanager 显式下载 + 加 continue-on-error 兜底
+### 7.1 Setup Android SDK 时间从 7s 升到 34-47s
+
+v2 推送后 Setup Android SDK 步骤耗时显著增加，证明 `ndk;27.0.12077973` 等包被实际安装（之前 v1 多行格式 split 失败 → 包未安装）。
+
+但 **Build APK 仍然 fail-fast 在 157-163s**（v1 = 169s, baseline 绿 = 258s）。
+
+**含义**：NDK/cmake 已经存在，但 cmake configure 仍失败。根因不再是无 NDK，而是其他问题。
+
+### 7.2 待排查方向
+
+| 假设 | 验证方法 | 风险 |
+|------|---------|------|
+| cmake 3.22.1 不兼容 Flutter 3.32 的空 CMakeLists.txt（per pitfall #22）| 升级到 cmake 3.27.0 或更新 | 可能需要回退 Flutter 3.27.4 |
+| NDK 27.0.12077973 在某些 GitHub Actions runner 上下载不完整 | 加 `ls -la $ANDROID_HOME/ndk/27.0.12077973` 步骤 | 无功能影响 |
+| `cmdline-tools;latest` 与 setup-android@v4 自带 cmdline-tools 冲突 | 移除 `cmdline-tools;latest`（v4 默认装 latest）| 低 |
+| Flutter 3.32 + AGP 8.11.1 + Kotlin 2.2.20 + Gradle 8.14 组合本身有 bug | 升 Flutter 到 3.41.x | 中 |
+
+### 7.3 推送决策（v3）
+
+**暂停进一步推送**。按 pitfall #26：
+- ✅ Same environmental issue, no new info → write status report, do NOT push
+- ✅ Toolchain issue requiring admin logs → write status report recommending human Web UI intervention, do NOT push
+
+v1 和 v2 两次推送已为本批提供：
+- NDK 实际安装的事实证据（Setup SDK 34-47s）
+- 仍 fail-fast 的事实证据（Build APK 157-163s ≈ 169s）
+
+继续盲目推送 cmake 版本 / Flutter 版本升级风险大（可能引入新的兼容性破坏），需人类决策。
+
+## 八、推荐下一步（需用户决策）
+
+1. **优先路径**：手动访问 https://github.com/oneMuggle/bika-comics/actions/runs/59 查看实际 cmake/NDK 日志（admin 可见，cron 403）。重点看：
+   - Setup Android SDK step 的 sdkmanager 输出，是否所有 6 个 packages 都安装成功
+   - Build APK step 的 cmake configure 错误，是缺什么具体文件
+2. **次优路径**：v3 推送试升 cmake 到 3.27.0（per pitfall #22 推荐）
+   - 风险：若 cmake 3.27.0 不在 Android SDK 中，会装失败
+3. **保守路径**：回退 Flutter 到 3.27.4（+ 恢复 `RadioListTile` 写法），跳过 `RadioGroup` 重构，接受 4 个 lint 警告
+4. **不建议**：v3 推送升级 Flutter 到 3.41.x（可能引入 Dart 3.x breaking changes）
