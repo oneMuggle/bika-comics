@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/storage/settings_storage.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../../../shared/constants/app_strings.dart';
 import '../data/auth_repository.dart';
@@ -19,6 +20,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
 
+  // 第二十四批：自动签到设置（默认 true 与桌面 Setting.AutoSign 行为一致）
+  bool _autoSign = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // 从同步缓存读取当前值（main.dart 已 populateCache）
+    _autoSign = SettingsStorageHolder.instance.getAutoSignSync();
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -35,7 +46,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
 
     if (success && mounted) {
-      Navigator.of(context).pop();
+      // 第二十四批：手动登录成功 → 按当前开关调用 punchIn。
+      // 失败也不阻塞关闭页面的导航（与非签到体验一致）。
+      try {
+        await SettingsStorageHolder.instance.setAutoSign(_autoSign);
+      } catch (_) {
+        // 设置持久化失败不应阻断已经成功的登录。
+      }
+      if (_autoSign) {
+        try {
+          final msg = await ref.read(authStateProvider.notifier).punchIn();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(msg)),
+            );
+          }
+        } catch (_) {
+          // 非阻塞：登录已成功，签到失败只忽略（避免桌面同步阻塞）
+        }
+      }
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
     }
   }
 
@@ -122,13 +154,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
 
+                // 第二十四批：登录后自动签到开关（Setting.AutoSign）
+                SwitchListTile.adaptive(
+                  title: const Text('自动签到'),
+                  subtitle: const Text('登录成功后自动完成每日签到'),
+                  value: _autoSign,
+                  onChanged: (v) {
+                    setState(() => _autoSign = v);
+                  },
+                  contentPadding: EdgeInsets.zero,
+                ),
+
                 // Error message
                 if (authState.error != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
                       authState.error!,
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                      style:
+                          TextStyle(color: Theme.of(context).colorScheme.error),
                     ),
                   ),
                 const SizedBox(height: 24),

@@ -42,15 +42,19 @@ class ComicRepository {
   }
 
   /// 获取我的收藏列表
-  Future<List<Comic>> getMyFavourites({int page = 1}) async {
+  /// [sort] 排序：`dd` = 新到旧（默认），`da` = 旧到新
+  /// 对应桌面端 favorite_view.py `self.sortList = ["dd", "da"]`：
+  /// ui_favorite.ui 下拉框 index 0 = "新到旧" = `dd`，index 1 = "旧到新" = `da`。
+  /// `dd` 与桌面下拉框第一项一致，作为默认排序。
+  Future<List<Comic>> getMyFavourites(
+      {int page = 1, String sort = 'dd'}) async {
     final response = await _api.get(
       ApiEndpoints.myFavorites,
-      queryParameters: {'s': 'da', 'page': page},
+      queryParameters: {'s': sort, 'page': page},
     );
     final data = response.data['data'];
-    final comics = (data['comics'] as List)
-        .map((json) => Comic.fromJson(json))
-        .toList();
+    final comics =
+        (data['comics'] as List).map((json) => Comic.fromJson(json)).toList();
     return comics;
   }
 
@@ -61,9 +65,8 @@ class ComicRepository {
       queryParameters: {'s': 'dd', 'page': page},
     );
     final data = response.data['data'];
-    final comics = (data['comics'] as List)
-        .map((json) => Comic.fromJson(json))
-        .toList();
+    final comics =
+        (data['comics'] as List).map((json) => Comic.fromJson(json)).toList();
     return comics;
   }
 
@@ -123,7 +126,9 @@ class ComicRepository {
     final response = await _api.get(url);
     final data = response.data['data'];
     final docs = data['docs'] as List? ?? [];
-    return docs.map((c) => Comment.fromJson(c as Map<String, dynamic>)).toList();
+    return docs
+        .map((c) => Comment.fromJson(c as Map<String, dynamic>))
+        .toList();
   }
 
   /// 发送评论
@@ -145,12 +150,15 @@ class ComicRepository {
   }
 
   /// 获取子评论
-  Future<List<Comment>> getCommentChildren(String commentId, {int page = 1}) async {
+  Future<List<Comment>> getCommentChildren(String commentId,
+      {int page = 1}) async {
     final url = '/comments/$commentId/childrens?page=$page';
     final response = await _api.get(url);
     final data = response.data['data'];
     final docs = data['docs'] as List? ?? [];
-    return docs.map((c) => Comment.fromJson(c as Map<String, dynamic>)).toList();
+    return docs
+        .map((c) => Comment.fromJson(c as Map<String, dynamic>))
+        .toList();
   }
 
   /// 发送子评论
@@ -180,8 +188,7 @@ class ComicRepository {
 
   /// 获取相关漫画推荐 (GET /comics/{id}/recommendation)
   Future<List<Comic>> getComicRecommendation(String comicId) async {
-    final url =
-        ApiEndpoints.comicRecommendation.replaceFirst('{id}', comicId);
+    final url = ApiEndpoints.comicRecommendation.replaceFirst('{id}', comicId);
     final response = await _api.get(url);
     final data = response.data['data'];
     final list = data['comics'] as List? ?? [];

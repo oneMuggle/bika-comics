@@ -19,6 +19,7 @@ const _keyForbidTitle = 'forbid_title';
 const _keyForbidTag = 'forbid_tag';
 const _keyForbidCategory = 'forbid_category';
 const _keyChatSendAction = 'chat_send_action';
+const _keyAutoSign = 'auto_sign'; // 第二十四批：登录后自动签到（桌面 Setting.AutoSign，默认 true）
 
 /// 设置存储（非敏感设置）
 class SettingsStorage {
@@ -189,6 +190,30 @@ class SettingsStorage {
 
   Future<void> setChatSendAction(int action) =>
       _storage.write(key: _keyChatSendAction, value: action.toString());
+
+  // ================== 自动签到 (第二十四批 - 2026-07-15) ==================
+
+  /// 登录成功后是否自动签到（POST /users/punch-in）
+  /// 对应桌面端 Setting.AutoSign（config/setting.py 默认 1 = true）
+  /// 默认值 true：与桌面端行为保持一致；用户首次启动即生效。
+  bool getAutoSignSync() {
+    final v = _syncRead(_keyAutoSign);
+    // 缺失等价于首次启动 → 默认 true（与桌面默认一致）。
+    if (v == null) return true;
+    return v == 'true';
+  }
+
+  Future<bool> getAutoSign() async {
+    final v = await _storage.read(key: _keyAutoSign);
+    if (v == null) return true;
+    return v == 'true';
+  }
+
+  /// 同时写入持久化存储和同步缓存（保持现有 `get*Sync()` 设计契约）。
+  Future<void> setAutoSign(bool value) async {
+    _cache[_keyAutoSign] = value.toString();
+    await _storage.write(key: _keyAutoSign, value: value.toString());
+  }
 
   // ================== Helpers ==================
 

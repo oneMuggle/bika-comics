@@ -8,10 +8,35 @@ import '../data/forbid_words_filter_helper.dart';
 import '../domain/comic_model.dart';
 import 'comic_detail_screen.dart';
 
-/// 我的收藏 Provider
-final myFavouritesProvider = FutureProvider<List<Comic>>((ref) async {
+/// 第二十四批：我的收藏排序选项
+///
+/// 桌面端 favorite_view.py `self.sortList = ["dd", "da"]`：
+/// - `dd` = 新到旧（date desc）
+/// - `da` = 旧到新（date asc）
+enum FavouritesSort {
+  /// 新到旧（date desc，桌面下拉框第一项）
+  newestFirst('dd', '新到旧'),
+
+  /// 旧到新（date asc）
+  oldestFirst('da', '旧到新');
+
+  final String apiValue;
+  final String label;
+
+  const FavouritesSort(this.apiValue, this.label);
+}
+
+/// 我的收藏排序状态（StateProvider，UI 可写）
+final favouritesSortProvider = StateProvider<FavouritesSort>((ref) {
+  return FavouritesSort.newestFirst;
+});
+
+/// 我的收藏 Provider（按排序 key family）
+/// 切换排序时 family key 变化 → 重新拉取；手动 invalidate 也会触发刷新。
+final myFavouritesProvider =
+    FutureProvider.family<List<Comic>, FavouritesSort>((ref, sort) async {
   final repo = ref.read(comicRepositoryProvider);
-  return repo.getMyFavourites();
+  return repo.getMyFavourites(sort: sort.apiValue);
 });
 
 /// 我的收藏页
@@ -20,7 +45,8 @@ class MyFavouritesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncFavourites = ref.watch(myFavouritesProvider);
+    final sort = ref.watch(favouritesSortProvider);
+    final asyncFavourites = ref.watch(myFavouritesProvider(sort));
     // 屏蔽词过滤（设置中开关后会自动重算）
     final filteredFavourites = ref.watch(
       filteredComicsProvider(asyncFavourites.valueOrNull ?? const <Comic>[]),
@@ -31,9 +57,28 @@ class MyFavouritesScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('我的收藏'),
         actions: [
+          // 第二十四批：排序选择（dd / da）
+          PopupMenuButton<FavouritesSort>(
+            tooltip: '排序',
+            icon: const Icon(Icons.sort),
+            initialValue: sort,
+            onSelected: (value) {
+              ref.read(favouritesSortProvider.notifier).state = value;
+              // family key 变化会自动重新拉取；显式 invalidate 让 UI 立即进入 loading。
+              ref.invalidate(myFavouritesProvider(value));
+            },
+            itemBuilder: (context) => [
+              for (final option in FavouritesSort.values)
+                CheckedPopupMenuItem<FavouritesSort>(
+                  value: option,
+                  checked: option == sort,
+                  child: Text(option.label),
+                ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(myFavouritesProvider),
+            onPressed: () => ref.invalidate(myFavouritesProvider(sort)),
           ),
         ],
       ),
@@ -48,7 +93,7 @@ class MyFavouritesScreen extends ConsumerWidget {
               Text('加载失败: $error'),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: () => ref.invalidate(myFavouritesProvider),
+                onPressed: () => ref.invalidate(myFavouritesProvider(sort)),
                 child: const Text('重试'),
               ),
             ],
@@ -70,7 +115,7 @@ class MyFavouritesScreen extends ConsumerWidget {
           }
           return RefreshIndicator(
             onRefresh: () async {
-              ref.invalidate(myFavouritesProvider);
+              ref.invalidate(myFavouritesProvider(sort));
             },
             child: GridView.builder(
               padding: const EdgeInsets.all(12),
@@ -90,7 +135,8 @@ class MyFavouritesScreen extends ConsumerWidget {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => ComicDetailScreen(comicId: comic.id),
+                        builder: (context) =>
+                            ComicDetailScreen(comicId: comic.id),
                       ),
                     );
                   },
