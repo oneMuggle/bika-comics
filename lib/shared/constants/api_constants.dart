@@ -3,8 +3,37 @@
 class ApiEndpoints {
   ApiEndpoints._();
 
-  // 默认 API 地址（可配置）
+  // 默认 API 地址（可配置；用户在设置页保存自定义地址后由 ApiClient.resolveBaseUrl 使用）
   static const String defaultBaseUrl = 'https://picaapi.picacomic.com';
+
+  /// 第二十五批：判断字符串是否为合法的 http/https Base URL。
+  ///
+  /// 校验规则：
+  /// - 必须能解析为 [Uri]（含 scheme 与 host）
+  /// - scheme 必须是 `http` 或 `https`（移动端不支持 ftp/file/custom）
+  /// - host 不能为空
+  /// - 末尾允许斜杠，但 host 部分必须存在
+  static bool isValidBaseUrl(String? url) {
+    if (url == null) return false;
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return false;
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null) return false;
+    if (uri.scheme != 'http' && uri.scheme != 'https') return false;
+    if (uri.host.isEmpty) return false;
+    return true;
+  }
+
+  /// 第二十五批：规范化 Base URL（去除首尾空白与末尾斜杠）。
+  ///
+  /// 不校验合法性；调用方应先使用 [isValidBaseUrl] 检查。
+  static String normalizeBaseUrl(String url) {
+    var v = url.trim();
+    while (v.endsWith('/')) {
+      v = v.substring(0, v.length - 1);
+    }
+    return v;
+  }
 
   // 认证
   // 第二十四批追加修复：登录端点对齐桌面端 LoginReq (auth/sign-in)

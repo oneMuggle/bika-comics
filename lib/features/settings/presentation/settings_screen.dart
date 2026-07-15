@@ -4,6 +4,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import '../../../shared/constants/app_colors.dart';
 import '../../../shared/constants/app_strings.dart';
+import '../../../shared/constants/api_constants.dart';
 import '../../../core/storage/settings_storage.dart';
 import '../../../core/utils/proxy_selector.dart';
 
@@ -64,8 +65,18 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   }
 
   Future<void> setApiBaseUrl(String url) async {
-    await _storage.setApiBaseUrl(url);
-    state = state.copyWith(apiBaseUrl: url);
+    // 第二十五批：保存前必须经过合法性与规范化校验，
+    // 非法值直接抛 ArgumentError，避免下游 ApiClient 收到空串/格式错误字符串。
+    if (!ApiEndpoints.isValidBaseUrl(url)) {
+      throw ArgumentError.value(
+        url,
+        'url',
+        'API 地址必须为 http:// 或 https:// 开头的合法 URL',
+      );
+    }
+    final normalized = ApiEndpoints.normalizeBaseUrl(url);
+    await _storage.setApiBaseUrl(normalized);
+    state = state.copyWith(apiBaseUrl: normalized);
   }
 
   Future<void> setProxy(ProxyType type, String? host, int port) async {
