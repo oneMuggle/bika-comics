@@ -9,7 +9,7 @@
 | 本批目标 | 自动签到设置 + 收藏列表远程排序 |
 | P0 / P1 核心迁移 | ✅ 已完成，本批不重复实现 |
 | 批次前总体完成度 | 96%（第二十三批口径） |
-| 批次后保守估计 | **97%**（补齐 2 个真实用户功能，同时确认代理链路仍为部分实现） |
+| 批次后保守估计 | **98%**（补齐 2 个用户功能，并追加修复 P0/P1 首页与关键 API 主链路；代理仍为部分实现） |
 | 严格桌面请求类计数 | **58** 个（`src/server/req.py` 中匹配 `^class \w+Req`） |
 | CI / Gradle 改动 | **零**（继续遵守同根因 stop-after-N 规则） |
 
@@ -137,6 +137,13 @@
 | `lib/features/comic/presentation/my_favourites_screen.dart` | 修改 | 排序枚举、Provider family、排序菜单 |
 | `test/settings_storage_auto_sign_test.dart` | 新增 | 自动签到默认值、持久化、缓存恢复测试 |
 | `test/favourites_sort_test.dart` | 新增 | 排序 API 映射与默认 Provider 状态测试 |
+| `test/api_endpoints_p0_test.dart` | 新增（追加修复） | 登录、收藏、阅读器、分类、首页端点回归测试 |
+| `test/home_screen_test.dart` | 新增（追加修复） | 首页 TabController 与抽屉回调 Widget 测试 |
+| `lib/app.dart` | 修改（追加修复） | 推荐首页接入底部导航；保留全部漫画路由/抽屉入口 |
+| `lib/shared/constants/api_constants.dart` | 修改（追加修复） | 修正关键 API 路径并新增分类 URL helper |
+| `lib/features/home/presentation/home_screen.dart` | 修改（追加修复） | DefaultTabController、抽屉回调、Collections 常量 |
+| `lib/features/comic/presentation/categories_screen.dart` | 修改（追加修复） | 使用分类标题构造 `/comics?c=` 请求 |
+| `lib/features/comic/presentation/comic_list_screen.dart` | 修改（追加修复） | 独立路由时不再尝试打开不存在的内层 drawer |
 | `docs/migration-report-batch24.md` | 新增 | 本批迁移与审计报告 |
 
 未修改：`.github/workflows/`、`android/`、`pubspec.yaml`、数据库 schema、生成代码及以前批次报告。
@@ -150,7 +157,7 @@
 | `flutter pub get` | ✅ 成功 |
 | `dart run build_runner build --delete-conflicting-outputs` | ✅ 成功，963 outputs / 1968 actions；仅提示 analyzer 版本低于当前 Dart SDK，未失败 |
 | `flutter analyze lib/ test/` | ✅ 0 issues |
-| `flutter test` | ✅ 21/21 全部通过 |
+| `flutter test` | ✅ 28/28 全部通过（含追加端点与首页 Widget 测试） |
 | `git diff --check` | ✅ 通过 |
 | `flutter build apk --debug` | ❌ 本地 Android 工具链阻塞，非本批 Dart 代码错误 |
 
@@ -185,8 +192,36 @@
 
 ---
 
-## 八、结论
+## 九、追加修复：P0 首页可达性与关键 API（late audit）
 
-第二十四批不是重新迁移 P0/P1，而是在成熟项目上补齐两个经代码证据确认的用户功能：**登录后自动签到**和**收藏列表新旧排序**。同时纠正了请求类计数口径，并将此前被过度标记为“已完成”的 API 地址/HTTP/SOCKS5 代理降级为“配置 UI 已有、网络链路未接通”。
+在本批首次提交 `2c76f71` 后，追加的源码级端点审计发现了数个**自初始脚手架即存在**、并非自动签到/收藏排序改动引入的运行时缺陷。此前静态分析和无网络单元测试无法发现这些问题，旧报告又记录了正确的桌面路径，导致“文档正确、代码错误”的偏差长期未被注意。
 
-本批完成后，保守估计总体迁移完成度由 **96% 提升至 97%**；剩余差距集中在平台专用功能、第三方网络/存储协议和既有 Android CI 工具链，而不是 P0/P1 主流程。
+### 9.1 追加修复清单
+
+| 严重度 | 旧状态 | 修复 |
+|---|---|---|
+| P0 | 底部“首页”实际显示通用 `ComicListScreen`，推荐/随机 `HomeScreen` 仅有无人调用的 `/home` 路由 | MainShell 首屏改为 `HomeScreen`；通过外层 `ScaffoldState` 回调正常打开抽屉；“全部漫画”保留为独立 `/comics` 路由和抽屉入口 |
+| P0 | `HomeScreen` 的 `TabBar/TabBarView` 没有 `TabController`，一旦接线会断言 | 使用 `DefaultTabController(length: 2)` 包裹 |
+| P0 | 登录常量是 `/auth/login`，桌面 `LoginReq` 和报告均为 `/auth/sign-in` | 改为 `/auth/sign-in` |
+| P0 | 阅读器图片 helper 使用 `/eps/{episode}/pages`，桌面 `GetComicsBookOrderReq` 为 `/order/{episode}/pages?page=` | 改为 `/comics/{comic}/order/{episode}/pages?page=1`，支持显式 page |
+| P1 | 收藏列表常量是 `/my/favourites`，桌面 `FavoritesReq` 为 `/users/favourite` | 改为 `/users/favourite`，保留本批 `s=dd/da` 排序参数 |
+| P1 | 分类漫画调用占位 `/category?ccat=<id>`，桌面 `CategoriesSearchReq` 为 `/comics?page=&c=<分类标题>&s=` | 新增纯函数 helper，按分类标题 URL 编码并构造真实查询路径 |
+| 维护性 | 首页推荐写死 `'/collections'` | 改用 `ApiEndpoints.collections` |
+
+### 9.2 追加测试
+
+- `test/api_endpoints_p0_test.dart`：登录、收藏、阅读器、分类、Collections/Random 路径回归测试。
+- `test/home_screen_test.dart`：验证首页两个 Tab 可正常构建，以及菜单按钮能调用外层抽屉回调。
+
+追加修复完成后，P0/P1 主链路的保守完成度由本报告前文的 97% 更新为 **98%**。剩余主要差距仍是 API 自定义地址/HTTP/SOCKS5 代理运行时接线、远端 NAS、平台专用能力以及 Android NDK/CMake CI 工具链。
+
+---
+
+## 十、结论
+
+第二十四批最终包含两层工作：
+
+1. 功能补漏：自动签到、收藏新旧排序；
+2. late audit 追加修复：真正接通推荐首页，并纠正登录、收藏、阅读器和分类的关键请求路径。
+
+这些追加缺陷均可追溯到初始 Flutter 脚手架，未由本批新功能造成。修复后由端点纯函数测试和首页 Widget 测试防止再次回归。

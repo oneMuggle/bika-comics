@@ -25,7 +25,9 @@ class Category {
     return Category(
       id: json['_id'] ?? json['id'] ?? '',
       title: json['title'] ?? '',
-      cover: json['cover'] is String ? json['cover'] : (json['cover']?['path'] ?? ''),
+      cover: json['cover'] is String
+          ? json['cover']
+          : (json['cover']?['path'] ?? ''),
     );
   }
 }
@@ -41,14 +43,19 @@ final categoriesProvider = FutureProvider<List<Category>>((ref) async {
   return categories;
 });
 
-/// 分类漫画 Provider
-final categoryComicsProvider = FutureProvider.family<List<Comic>, String>((ref, categoryId) async {
+/// 分类漫画 Provider（按分类对象 family）
+/// 第二十四批追加修复：旧实现使用 `ApiEndpoints.categoryComics?ccat=<id>`
+/// 但桌面端 CategoriesSearchReq 实际使用 `comics?page=&c=&s=`（c 为分类标题）。
+/// 因此传入整个 Category 对象以便在 provider 内构造端点。
+final categoryComicsProvider =
+    FutureProvider.family<List<Comic>, Category>((ref, category) async {
   final api = ApiClient.instance;
-  final response = await api.get('${ApiEndpoints.categoryComics}?ccat=$categoryId');
+  // 使用 ApiEndpoints.categoryComics 纯函数构造 URL（可独立单测）
+  final url = ApiEndpoints.categoryComics(category: category.title);
+  final response = await api.get(url);
   final data = response.data['data'];
-  final comics = (data['comics'] as List)
-      .map((json) => Comic.fromJson(json))
-      .toList();
+  final comics =
+      (data['comics'] as List).map((json) => Comic.fromJson(json)).toList();
   return comics;
 });
 
@@ -97,7 +104,8 @@ class CategoriesScreen extends ConsumerWidget {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => CategoryComicsScreen(category: category),
+                    builder: (context) =>
+                        CategoryComicsScreen(category: category),
                   ),
                 );
               },
@@ -158,7 +166,7 @@ class CategoryComicsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncComics = ref.watch(categoryComicsProvider(category.id));
+    final asyncComics = ref.watch(categoryComicsProvider(category));
     final displayList = ref.watch(
       filteredComicsProvider(asyncComics.valueOrNull ?? const <Comic>[]),
     );
@@ -179,7 +187,7 @@ class CategoryComicsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () =>
-                    ref.invalidate(categoryComicsProvider(category.id)),
+                    ref.invalidate(categoryComicsProvider(category)),
                 child: const Text('重试'),
               ),
             ],
@@ -187,20 +195,19 @@ class CategoryComicsScreen extends ConsumerWidget {
         ),
         data: (comics) => RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(categoryComicsProvider(category.id));
+            ref.invalidate(categoryComicsProvider(category));
           },
           child: displayList.isEmpty
               ? const Center(
                   child: Padding(
                     padding: EdgeInsets.all(24),
-                    child: Text('没有可显示的漫画',
-                        style: TextStyle(color: Colors.grey)),
+                    child:
+                        Text('没有可显示的漫画', style: TextStyle(color: Colors.grey)),
                   ),
                 )
               : GridView.builder(
                   padding: const EdgeInsets.all(12),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     childAspectRatio: 0.65,
                     crossAxisSpacing: 12,

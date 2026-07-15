@@ -7,7 +7,8 @@ class ApiEndpoints {
   static const String defaultBaseUrl = 'https://picaapi.picacomic.com';
 
   // 认证
-  static const String login = '/auth/login';
+  // 第二十四批追加修复：登录端点对齐桌面端 LoginReq (auth/sign-in)
+  static const String login = '/auth/sign-in';
   static const String register = '/auth/register';
   static const String logout = '/auth/logout';
   static const String forgotPassword = '/auth/forgot-password';
@@ -25,9 +26,12 @@ class ApiEndpoints {
   static const String comicsSearch = '/comics/search';
 
   // Pica 号（推荐位）解析
-  static const String picaShareSet = 'https://recommend.go2778.com/pic/share/set';
-  static const String picaShareGet = 'https://recommend.go2778.com/pic/share/get';
-  static const String picaRecommendGet = 'https://recommend.go2778.com/pic/recommend/get';
+  static const String picaShareSet =
+      'https://recommend.go2778.com/pic/share/set';
+  static const String picaShareGet =
+      'https://recommend.go2778.com/pic/share/get';
+  static const String picaRecommendGet =
+      'https://recommend.go2778.com/pic/recommend/get';
 
   // 网络测速
   static const String speedTest = '/speed';
@@ -35,13 +39,19 @@ class ApiEndpoints {
 
   // 分类
   static const String categories = '/categories';
-  static const String categoryComics = '/category'; // ?ccat=<id>
+  // 第二十四批追加修复：原 `/category?ccat=<id>` 占位常量已移除；
+  // 真实端点由同名静态方法 `categoryComics(category, page, sort)` 构造
+  // （对齐桌面端 CategoriesSearchReq `comics?page=&c=&s=`，c 为分类标题，
+  // 需要 URL 编码）。
 
   // 标签
   static const String tags = '/tags';
 
   // 收藏
-  static const String myFavorites = '/my/favourites';
+  // 第二十四批追加修复：收藏列表端点对齐桌面端 FavoritesReq
+  //   `users/favourite?s={sort}&page={page}`
+  // 旧 `/my/favourites` 在新版服务端不再返回正确字段。
+  static const String myFavorites = '/users/favourite';
   static const String favorite = '/comics/{id}/favourite';
 
   // 追漫
@@ -117,8 +127,13 @@ class ApiEndpoints {
   static String comicDetail(String id) => '/comics/$id';
 
   // 章节图片
-  static String episodePages(String comicId, String episodeId) =>
-      '/comics/$comicId/eps/$episodeId/pages';
+  // 第二十四批追加修复：阅读器端点对齐桌面端 GetComicsBookOrderReq
+  //   `comics/{cid}/order/{eid}/pages?page=1`
+  // 旧 `/comics/{cid}/eps/{eid}/pages` 在新版服务端返回字段不一致。
+  /// 构造章节图片 URL（包含默认 page=1 查询参数）。
+  static String episodePages(String comicId, String episodeId,
+          {int page = 1}) =>
+      '/comics/$comicId/order/$episodeId/pages?page=$page';
 
   // 章节列表
   static String episodes(String comicId) => '/comics/$comicId/eps';
@@ -126,4 +141,18 @@ class ApiEndpoints {
   // 用户收藏夹
   static String userFavorites(String uid, {int page = 1}) =>
       '/users/$uid/favourites?page=$page';
+
+  // 第二十四批追加修复：分类漫画搜索。
+  // 对齐桌面端 CategoriesSearchReq
+  //   `comics?page={page}&c={quote(categories)}&s={sort}`
+  // [category] 为分类标题（不是 id），将被 `Uri.encodeQueryComponent`
+  // 编码。空字符串/空 sort 也会保留 `c=`/`s=` 形参与桌面端一致。
+  static String categoryComics({
+    required String category,
+    int page = 1,
+    String sort = '',
+  }) {
+    final c = Uri.encodeQueryComponent(category);
+    return '$comics?page=$page&c=$c&s=$sort';
+  }
 }

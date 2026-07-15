@@ -10,19 +10,21 @@ import 'comic_detail_screen.dart';
 import '../../history/presentation/history_screen.dart';
 
 /// 漫画列表 Provider
-final comicListProvider = FutureProvider.family<List<Comic>, int>((ref, page) async {
+final comicListProvider =
+    FutureProvider.family<List<Comic>, int>((ref, page) async {
   final api = ApiClient.instance;
   final response = await api.get(ApiEndpoints.comicsList(page: page));
   final data = response.data['data'];
-  final comics = (data['comics'] as List)
-      .map((json) => Comic.fromJson(json))
-      .toList();
+  final comics =
+      (data['comics'] as List).map((json) => Comic.fromJson(json)).toList();
   return comics;
 });
 
 /// 漫画列表页
 class ComicListScreen extends ConsumerStatefulWidget {
-  const ComicListScreen({super.key});
+  final VoidCallback? onOpenDrawer;
+
+  const ComicListScreen({super.key, this.onOpenDrawer});
 
   @override
   ConsumerState<ComicListScreen> createState() => _ComicListScreenState();
@@ -60,11 +62,11 @@ class _ComicListScreenState extends ConsumerState<ComicListScreen> {
     setState(() => _isLoading = true);
     try {
       final api = ApiClient.instance;
-      final response = await api.get(ApiEndpoints.comicsList(page: _currentPage));
+      final response =
+          await api.get(ApiEndpoints.comicsList(page: _currentPage));
       final data = response.data['data'];
-      final comics = (data['comics'] as List)
-          .map((json) => Comic.fromJson(json))
-          .toList();
+      final comics =
+          (data['comics'] as List).map((json) => Comic.fromJson(json)).toList();
       if (comics.isEmpty) {
         _hasMore = false;
       } else {
@@ -96,12 +98,12 @@ class _ComicListScreenState extends ConsumerState<ComicListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('哔咔漫画'),
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-        ),
+        leading: widget.onOpenDrawer == null
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: widget.onOpenDrawer,
+              ),
         actions: [
           IconButton(
             icon: const Icon(Icons.history),

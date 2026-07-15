@@ -21,7 +21,7 @@ class ComicCollection {
 final homeCollectionsProvider =
     FutureProvider<List<ComicCollection>>((ref) async {
   final api = ApiClient.instance;
-  final response = await api.get('/collections');
+  final response = await api.get(ApiEndpoints.collections);
   final data = response.data['data'];
 
   final collections = <ComicCollection>[];
@@ -52,42 +52,47 @@ final homeTabIndexProvider = StateProvider<int>((ref) => 0);
 
 /// 首页屏幕
 class HomeScreen extends ConsumerWidget {
-  const HomeScreen({super.key});
+  final VoidCallback? onOpenDrawer;
+
+  const HomeScreen({super.key, this.onOpenDrawer});
 
   @override
- Widget build(BuildContext context, WidgetRef ref) {
- return Scaffold(
- appBar: AppBar(
-        title: const Text('哔咔漫画'),
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openDrawer(),
+  Widget build(BuildContext context, WidgetRef ref) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('哔咔漫画'),
+          leading: onOpenDrawer == null
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.menu),
+                  onPressed: onOpenDrawer,
+                ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.history),
+              onPressed: () {
+                Navigator.pushNamed(context, '/history');
+              },
+            ),
+          ],
+          bottom: TabBar(
+            onTap: (index) {
+              ref.read(homeTabIndexProvider.notifier).state = index;
+            },
+            tabs: const [
+              Tab(text: '推荐'),
+              Tab(text: '随机'),
+            ],
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () {
-              Navigator.pushNamed(context, '/history');
-            },
-          ),
-        ],
-        bottom: TabBar(
-          onTap: (index) {
-            ref.read(homeTabIndexProvider.notifier).state = index;
-          },
-          tabs: const [
-            Tab(text: '推荐'),
-            Tab(text: '随机'),
+        body: const TabBarView(
+          children: [
+            _CollectionsTab(),
+            _RandomTab(),
           ],
         ),
-      ),
-      body: const TabBarView(
-        children: [
-          _CollectionsTab(),
-          _RandomTab(),
-        ],
       ),
     );
   }
@@ -172,14 +177,13 @@ class _RandomTab extends ConsumerWidget {
               ? const Center(
                   child: Padding(
                     padding: EdgeInsets.all(24),
-                    child: Text('没有可显示的漫画',
-                        style: TextStyle(color: Colors.grey)),
+                    child:
+                        Text('没有可显示的漫画', style: TextStyle(color: Colors.grey)),
                   ),
                 )
               : GridView.builder(
                   padding: const EdgeInsets.all(12),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     childAspectRatio: 0.65,
                     crossAxisSpacing: 12,
@@ -217,8 +221,7 @@ class _CollectionSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final filtered =
-        ref.watch(filteredComicsProvider(collection.comics));
+    final filtered = ref.watch(filteredComicsProvider(collection.comics));
     if (filtered.isEmpty) return const SizedBox.shrink();
 
     return Column(

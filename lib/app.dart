@@ -38,7 +38,8 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 final shellNavigatorKey = GlobalKey<NavigatorState>();
 
 /// 应用主题 provider
-final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
+final themeModeProvider =
+    StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
   return ThemeModeNotifier(ref.read(settingsStorageProvider));
 });
 
@@ -97,6 +98,7 @@ class _PicacgAppState extends ConsumerState<PicacgApp> {
         '/follows': (context) => const MyFollowsScreen(),
         '/history': (context) => const HistoryScreen(),
         '/home': (context) => const HomeScreen(),
+        '/comics': (context) => const ComicListScreen(),
         '/pica-share': (context) => const PicaShareResolverScreen(),
         '/speed-test': (context) => const SpeedTestScreen(),
         '/profile': (context) => const ProfileScreen(),
@@ -138,17 +140,19 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  final List<Widget> _screens = const [
-    ComicListScreen(),
-    SearchScreen(),
-    DownloadsScreen(),
-    SettingsScreen(),
+  late final List<Widget> _screens = [
+    HomeScreen(onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer()),
+    const SearchScreen(),
+    const DownloadsScreen(),
+    const SettingsScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       body: IndexedStack(
         index: _selectedIndex,
         children: _screens,
@@ -179,6 +183,14 @@ class _MainShellState extends State<MainShell> {
                   ),
                 ],
               ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.menu_book),
+              title: const Text('全部漫画'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/comics');
+              },
             ),
             ListTile(
               leading: const Icon(Icons.category),
