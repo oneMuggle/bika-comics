@@ -315,7 +315,7 @@ Gradle task assembleDebug failed with exit code 1
 
 | 检查项 | 结果 |
 |---|---|
-| `git status` (bika-comics) | clean，最终 `59ced60` = origin/main |
+| `git status` (bika-comics) | clean，最终 `HEAD` = `origin/main` |
 | `git status` (picacg-qt-temp) | clean，`7d0a3fe` |
 | `dart analyze lib/` | No issues found! |
 | `flutter pub get` | Got dependencies!（与上次一致） |
