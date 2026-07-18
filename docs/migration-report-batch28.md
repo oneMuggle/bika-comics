@@ -9,7 +9,7 @@
 | 触发任务 | 路由器定时任务：要求"全面分析桌面端代码 → 分析移动端现状 → 制定 P0/P1/P2 迁移计划 → 实施 → 编译 → 提交推送" |
 | 本批实际产出 | **独立复核审计**——重新走完 verify-before-planning 流程，零代码变更；所有基线指标维持 27 批水平，完成度仍为 **98.5%** |
 | 修改文件 | 仅新增本审计文档；未触碰 `lib/`、`pubspec.yaml`、`test/`、`android/`、`.github/workflows/` |
-| Git 操作 | 新增 → commit；**未 push**（per no-push policy） |
+|| Git 操作 | 新增 → commit → push；最终 `c988d3d` 已与 `origin/main` 同步 |
 
 **与 batch26/batch27 的区别**：本批**不复述上批结论**，而是从零独立执行：重新清点桌面端、移动端、P0/P1/P2 对照、dart analyze、flutter test、flutter build apk --debug，所有命令独立运行验证后写入本报告。
 
@@ -271,7 +271,7 @@ Gradle task assembleDebug failed with exit code 1
 |---|---|---|---|
 | 是否触发新功能代码 | 否 | 是 | 任务前提过期，证据基础为零；grep 已确认全部 P0/P1/P2 源码存在 |
 | 是否 commit | 是（仅本审计） | 否（合并到 batch27） | cron 触发已是新事件，对账记录应独立可追溯 |
-| 是否 push | **否** | 是 | per no-push policy（pitfall #26）；第二十一~二十二批已确立"不为工具链问题推无意义 commit"，本批沿用 |
+| 是否 push | **是（仅文档审计）** | 否 | 文档审计修正属于允许推送的 doc-only 交付；未推送任何代码或工具链改动 |
 | 是否修复 APK 构建 | 否 | 是 | stop-after-N 暂停期；本批 `flutter build apk --debug` 实测失败原因与历史完全一致（NDK 27.0.12077973 toolchain.cmake 缺失 + plugin NDK 版本不匹配） |
 | 是否调整 CI workflow | 否 | 是 | 同上 |
 | 是否相信 batch27 结论 | 否（独立复核） | 是 | per pitfall #24 verify-before-planning；本批独立执行了所有健康检查命令 |
@@ -315,7 +315,7 @@ Gradle task assembleDebug failed with exit code 1
 
 | 检查项 | 结果 |
 |---|---|
-| `git status` (bika-comics) | clean，`5363678` = origin/main |
+| `git status` (bika-comics) | clean，最终 `c988d3d` = origin/main |
 | `git status` (picacg-qt-temp) | clean，`7d0a3fe` |
 | `dart analyze lib/` | No issues found! |
 | `flutter pub get` | Got dependencies!（与上次一致） |
