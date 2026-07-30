@@ -3,7 +3,8 @@
 **日期**: 2026-07-31 (CST 02:01)
 **触发**: cron `bika-comics-migration-daily`
 **项目**: /home/ubuntu/project/bika-comics
-**对应 HEAD (本地)**: 待本次提交后回填
+**对应 HEAD (本地)**: `e99ebfd` (commit) / `e99ebfd6a6443f2d53830f253262917947a12fe1` (full SHA)
+**对应 HEAD (远端 origin/main)**: `e99ebfd`（推送后一致）
 
 ---
 
