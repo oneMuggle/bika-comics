@@ -26,7 +26,17 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.0'
+          # 第五十八批（2026-10-27）：CI SDK 对齐修复。
+          # 根因（已由真实 CI 日志确认，非推测）：
+          #   失败任务 = :app:compileFlutterBuildRelease（Dart 源码编译阶段），
+          #   报错 = "The method 'RadioGroup' isn't defined"（settings_screen.dart:325/424）。
+          #   RadioGroup 是 Flutter 3.35.0 引入的新 API（已用 flutter/flutter git tree 逐版本核验：
+          #   3.32.0 不存在，3.35.0/3.38.0/3.41.9 均存在）。
+          #   CI 之前锁定 3.32.0 < 3.35.0，因此必然编译失败。
+          #   同时 pubspec.lock 的 sdks 约束为 flutter ">=3.38.4"，3.32.0 无法满足，
+          #   CI 的 flutter pub get 会重新解析依赖（日志实证："Changed 34 dependencies!"）。
+          # 修复：CI SDK 提升到 3.41.9（与本地 SDK 一致，且 >= lock 约束 3.38.4）。
+          flutter-version: '3.41.9'
           channel: 'stable'
 
 
@@ -38,19 +48,14 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
-        # 第二十一批（2026-07-11）：显式安装 NDK + cmake。
-        # android-actions/setup-android@v4 默认 packages 为 'tools platform-tools'，
-        # 不含 NDK/cmake。app/build.gradle.kts 中 ndkVersion = "27.0.12077973"，
-        # Flutter 3.32+ 的 gradle plugin 总是指向空 CMakeLists.txt 触发 cmake configure。
-        # 若依赖 AGP 在 build 阶段自动下载 NDK，构建会在 cmake configure 失败
-        # （"Could not find toolchain file: NDK/build/cmake/android.toolchain.cmake"），
-        # Build APK step 耗时从 258s 降到 169s（失败前置退出）。
-        # 显式在 Setup 阶段装好 NDK + cmake 可以避免此 race。
-        #
-        # 注意：setup-android@v4 的 packages 解析用 split(" ")（空格分隔），
-        # 不能用 YAML 块（|）多行格式。必须单行空格分隔。
+        # 第五十八批（2026-10-27）：NDK/cmake 版本与 CI Flutter 3.41.9 对齐。
+        #   flutter.ndkVersion (Flutter 3.41.9) = 28.2.13676358
+        #   jni 插件声明 `ndkVersion flutter.ndkVersion` 且带 externalNativeBuild/cmake，
+        #   因此 NDK + cmake 确实必须预装，且版本必须与 Flutter 匹配。
+        #   cmake 3.31.6 满足 AGP 8.11.1 与 jni 插件的 cmake >= 3.10.2 要求。
+        # 注意：setup-android@v4 的 packages 解析用 split(" ")，不能写成 YAML 块。
         with:
-          packages: cmdline-tools;latest platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.0.12077973 cmake;3.22.1
+          packages: cmdline-tools;latest platform-tools platforms;android-36 build-tools;36.0.0 ndk;28.2.13676358 cmake;3.31.6
         # GitHub Actions 的 android-actions/setup-android@v4 偶发失败 (网络 / 缓存抖动)。
         # 用 continue-on-error + 重试模式保证 build 流程稳定。
         continue-on-error: true
@@ -67,7 +72,7 @@ jobs:
         if: steps.setup-android-sdk.outcome == 'failure'
         uses: android-actions/setup-android@v4
         with:
-          packages: cmdline-tools;latest platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.0.12077973 cmake;3.22.1
+          packages: cmdline-tools;latest platform-tools platforms;android-36 build-tools;36.0.0 ndk;28.2.13676358 cmake;3.31.6
 
       - name: Accept Android Licenses
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
@@ -104,7 +109,17 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.0'
+          # 第五十八批（2026-10-27）：CI SDK 对齐修复。
+          # 根因（已由真实 CI 日志确认，非推测）：
+          #   失败任务 = :app:compileFlutterBuildRelease（Dart 源码编译阶段），
+          #   报错 = "The method 'RadioGroup' isn't defined"（settings_screen.dart:325/424）。
+          #   RadioGroup 是 Flutter 3.35.0 引入的新 API（已用 flutter/flutter git tree 逐版本核验：
+          #   3.32.0 不存在，3.35.0/3.38.0/3.41.9 均存在）。
+          #   CI 之前锁定 3.32.0 < 3.35.0，因此必然编译失败。
+          #   同时 pubspec.lock 的 sdks 约束为 flutter ">=3.38.4"，3.32.0 无法满足，
+          #   CI 的 flutter pub get 会重新解析依赖（日志实证："Changed 34 dependencies!"）。
+          # 修复：CI SDK 提升到 3.41.9（与本地 SDK 一致，且 >= lock 约束 3.38.4）。
+          flutter-version: '3.41.9'
           channel: 'stable'
 
 
@@ -116,10 +131,10 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
-        # 第二十一批（2026-07-11）：显式安装 NDK + cmake，详见 build job 同名 step 注释。
+        # 第五十八批（2026-10-27）：NDK/cmake 与 CI Flutter 3.41.9 对齐，详见 build job 同名 step 注释。
         # packages 必须是单行空格分隔（v4 内部用 split(" ") 解析）。
         with:
-          packages: cmdline-tools;latest platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.0.12077973 cmake;3.22.1
+          packages: cmdline-tools;latest platform-tools platforms;android-36 build-tools;36.0.0 ndk;28.2.13676358 cmake;3.31.6
         # GitHub Actions 的 android-actions/setup-android@v4 偶发失败 (网络 / 缓存抖动)。
         # 用 continue-on-error + 重试模式保证 build-release 流程稳定。
         continue-on-error: true
@@ -137,7 +152,7 @@ jobs:
         if: steps.setup-android-sdk.outcome == 'failure'
         uses: android-actions/setup-android@v4
         with:
-          packages: cmdline-tools;latest platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.0.12077973 cmake;3.22.1
+          packages: cmdline-tools;latest platform-tools platforms;android-36 build-tools;36.0.0 ndk;28.2.13676358 cmake;3.31.6
 
       - name: Verify Android SDK
         run: |

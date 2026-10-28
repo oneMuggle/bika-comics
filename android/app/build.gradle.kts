@@ -10,7 +10,10 @@ android {
     // androidx.core 1.18.0 / navigationevent 1.0.2 require compileSdk 36+
     // (bumped 2026-06-09 from 35 to keep up with androidx)
     compileSdk = 36
-    ndkVersion = "27.0.12077973"
+    // 不硬编码 NDK 版本：jni 插件声明 `ndkVersion flutter.ndkVersion`，
+    // 硬编码会与其冲突（"plugin(s) depend on a different Android NDK version"）。
+    // 使用 flutter.ndkVersion 可随 Flutter SDK 自动对齐。
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
