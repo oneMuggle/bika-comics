@@ -14,6 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
+      - name: Checkout
+        # 第五十八批（2026-10-29）：必须 checkout。
+        # workflow_run 触发的 job 默认没有工作区副本，gh CLI 无法通过 git remote
+        # 推断仓库，会报 "failed to run git: fatal: not a git repository" 并 exit 1。
+        # 同时该步骤提供 pubspec.yaml，供下一步计算发布 tag。
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Wait for artifact availability
         # GitHub Actions 在 workflow_run 场景下, artifacts 有最终一致性延迟
         # 60s 是社区推荐的稳妥值
@@ -22,24 +31,36 @@ jobs:
 
       - name: Download Release APK via gh CLI
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # 第五十八批（2026-10-29）：修复 `gh run download --run-id` 非法标志。
-        # 实际用法为 `gh run download [<run-id>]`，run-id 是【位置参数】而非标志，
-        # 传 `--run-id` 会直接报 "unknown flag: --run-id" 并 exit 1。
-        # 该 bug 自 workflow 编写起一直存在，此前因上游 build job 从未成功，
-        # 本 job 始终被 skipped，故从未暴露；build 转绿后立即显现。
-        # 另外 --repo 仅在跨仓库时需要，同仓库下载可省略，故这里不再传 --repo。
+        # 正确用法为 `gh run download [<run-id>]`，run-id 是【位置参数】而非标志，
+        # 传 `--run-id` 会报 "unknown flag: --run-id" 并 exit 1。
+        # 同时保留 --repo：gh 解析仓库优先级为 --repo > git remote > GH_REPO，
+        # 显式传 --repo 可避免依赖 git remote。
         run: |
           gh run download \
+            --repo "${{ github.repository }}" \
             "${{ github.event.workflow_run.id }}" \
             --name "picacg-release-apk" \
             --dir .
           ls -la
-          ls -la app-release.apk 2>/dev/null || find . -name "*.apk" -ls
+          ls -la app-release.apk
+
+      - name: Resolve release tag
+        id: tag
+        # 与 build job 的 "Create Tag" 步骤保持一致：从 pubspec.yaml 的 version 推导。
+        # 构建 job 已推送同名 tag，这里只读取不推送，避免 tag 冲突。
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          echo "version=v$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          # 显式指定 tag：workflow_run 事件的默认 github.ref 是 refs/heads/main，
+          # 不显式指定会导致 release 挂在错误的 ref 上。
+          tag_name: ${{ steps.tag.outputs.version }}
+          name: ${{ steps.tag.outputs.version }}
           draft: false
           prerelease: false
           files: app-release.apk
