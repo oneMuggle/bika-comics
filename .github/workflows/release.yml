@@ -23,10 +23,15 @@ jobs:
       - name: Download Release APK via gh CLI
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # 第五十八批（2026-10-29）：修复 `gh run download --run-id` 非法标志。
+        # 实际用法为 `gh run download [<run-id>]`，run-id 是【位置参数】而非标志，
+        # 传 `--run-id` 会直接报 "unknown flag: --run-id" 并 exit 1。
+        # 该 bug 自 workflow 编写起一直存在，此前因上游 build job 从未成功，
+        # 本 job 始终被 skipped，故从未暴露；build 转绿后立即显现。
+        # 另外 --repo 仅在跨仓库时需要，同仓库下载可省略，故这里不再传 --repo。
         run: |
           gh run download \
-            --repo "${{ github.repository }}" \
-            --run-id "${{ github.event.workflow_run.id }}" \
+            "${{ github.event.workflow_run.id }}" \
             --name "picacg-release-apk" \
             --dir .
           ls -la
