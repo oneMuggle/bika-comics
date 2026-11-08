@@ -146,10 +146,26 @@ class ApiEndpoints {
   static String comicsList({int page = 1}) => '/comics?page=$page';
 
   // 搜索
+  ///
+  /// 第五十九批修复：原先直接把未编码的关键词拼进 path
+  /// （`'/comics/search?q=$q&page=1'`）。这有两个问题：
+  ///
+  /// 1. **查询参数注入**：关键词里若含 `&`（如 `a&c=VC`），会被当成
+  ///    额外的查询参数，语义被篡改。
+  /// 2. **签名不一致**：桌面端 `CategoriesSearchReq` 用
+  ///    `quote(categories)` 编码分类名，签名对象是编码后的字符串；
+  ///    移动端未编码，服务端按解码后的值校验签名 → 校验失败。
+  ///
+  /// 现在改为用 `Uri.encodeQueryComponent` 编码关键词与分类，
+  /// 并返回**相对路径**（无前导斜杠），与桌面端签名对象完全一致。
   static String search({required String q, String? categories, int? page}) {
-    String url = '$comicsSearch?q=$q&page=${page ?? 1}';
-    if (categories != null) url += '&c=$categories';
-    return url;
+    final encodedQ = Uri.encodeQueryComponent(q);
+    final buffer = StringBuffer('$comicsSearch?q=$encodedQ')
+      ..write('&page=${page ?? 1}');
+    if (categories != null && categories.isNotEmpty) {
+      buffer.write('&c=${Uri.encodeQueryComponent(categories)}');
+    }
+    return buffer.toString();
   }
 
   // 漫画详情

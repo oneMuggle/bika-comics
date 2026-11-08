@@ -17,6 +17,7 @@ dependencies:
 
   # 网络
   dio: ^5.4.0
+  crypto: ^3.0.7  # 第五十九批：Pica API 请求签名 (HMAC-SHA256)
 
   # 图片
   cached_network_image: ^3.3.1

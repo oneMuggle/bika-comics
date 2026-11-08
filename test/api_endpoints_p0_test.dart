@@ -38,4 +38,36 @@ void main() {
       expect(ApiEndpoints.comicsRandom, '/comics/random');
     });
   });
+
+  // 第五十九批：搜索关键词此前未经编码直接拼进 path，既能被 "&" 注入
+  // 篡改语义，也会与签名对象不一致。现改为 Uri.encodeQueryComponent 编码。
+  group('搜索端点编码（第五十九批）', () {
+    test('中文关键词被正确编码', () {
+      expect(
+        ApiEndpoints.search(q: '女汉', page: 1),
+        '/comics/search?q=%E5%A5%B3%E6%B1%89&page=1',
+      );
+    });
+
+    test('含 "&" 的关键词不会注入额外查询参数', () {
+      final url = ApiEndpoints.search(q: 'a&c=VC', page: 1);
+      expect(url, '/comics/search?q=a%26c%3DVC&page=1');
+      // 只有一个真正的查询参数分隔符（路径后的第一个 ?）
+      expect('?'.allMatches(url).length, 1);
+    });
+
+    test('分类参数同样被编码', () {
+      expect(
+        ApiEndpoints.search(q: 'x', categories: 'Cosplay 中文', page: 2),
+        '/comics/search?q=x&page=2&c=Cosplay+%E4%B8%AD%E6%96%87',
+      );
+    });
+
+    test('分类为空时不会出现悬空的 &c=', () {
+      expect(
+        ApiEndpoints.search(q: 'x', categories: '', page: 1),
+        '/comics/search?q=x&page=1',
+      );
+    });
+  });
 }
