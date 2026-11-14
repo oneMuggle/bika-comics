@@ -7,6 +7,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../../core/storage/secure_storage.dart';
 import '../domain/chat_model.dart';
+import '../../../core/api/api_client.dart';
 
 /// 聊天室仓库
 ///
@@ -51,15 +52,30 @@ class ChatRepository {
     SecureStorageHolder.instance.delete(_kChatToken);
   }
 
+  Dio? _dioInstance;
+
   Dio _dio() {
-    return Dio(BaseOptions(
-      baseUrl: _chatBaseUrl,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 30),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    ));
+    // 第五十九批：原本用裸 `Dio(BaseOptions(...))`，绕过代理配置。
+    // 改用统一客户端，使代理开关对聊天接口同样生效。
+    //
+    // 第六十批：复用同一个 `Dio` 实例（否则每次请求都新建一个
+    // `HttpClient`，且从不关闭 → 资源泄漏）。
+    return _dioInstance ??= ApiClient.createClient(
+      options: BaseOptions(
+        baseUrl: _chatBaseUrl,
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 30),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      ),
+    );
+  }
+
+  /// 释放底层 `Dio` / `HttpClient`。由 Provider 的 `onDispose` 调用。
+  void dispose() {
+    _dioInstance?.close(force: true);
+    _dioInstance = null;
   }
 
   /// 登录聊天服务器，获取 token
@@ -221,5 +237,8 @@ class ChatRepository {
 }
 
 final chatRepositoryProvider = Provider<ChatRepository>((ref) {
-  return ChatRepository();
+  final repository = ChatRepository();
+  // 第六十批：Provider 被销毁时关闭底层 Dio/HttpClient，避免资源泄漏。
+  ref.onDispose(repository.dispose);
+  return repository;
 });

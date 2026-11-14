@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/storage/secure_storage.dart';
 import '../domain/friend_post_model.dart';
+import '../../../core/api/api_client.dart';
 
 /// 好友动态（锅贴）仓库
 ///
@@ -22,9 +23,19 @@ class FriendRepository {
       'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 '
       '(KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36';
 
+  /// 第六十批：复用同一个 `Dio` 实例，而不是每次请求都新建一个。
+  ///
+  /// 每次新建都会持有一个新的 `HttpClient`
+  /// （dio-5.10.0 `lib/src/adapters/io_adapter.dart:241` `_cachedHttpClient`），
+  /// 若不关闭就会泄漏。复用 + 在 [dispose] 里关闭，既避免泄漏又避免
+  /// 每次请求都重建连接池。
+  Dio? _dioInstance;
+
   Dio _dio() {
-    final dio = Dio(
-      BaseOptions(
+    // 第五十九批：原本用裸 `Dio(BaseOptions(...))`，绕过代理配置。
+    // 改用统一客户端，使代理开关对动态接口同样生效。
+    return _dioInstance ??= ApiClient.createClient(
+      options: BaseOptions(
         baseUrl: _baseUrl,
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 30),
@@ -34,7 +45,12 @@ class FriendRepository {
         },
       ),
     );
-    return dio;
+  }
+
+  /// 释放底层 `Dio` / `HttpClient`。由 Provider 的 `onDispose` 调用。
+  void dispose() {
+    _dioInstance?.close(force: true);
+    _dioInstance = null;
   }
 
   /// 动态列表（GET /posts?offset=N）
@@ -154,7 +170,10 @@ class FriendRepository {
 }
 
 final friendRepositoryProvider = Provider<FriendRepository>((ref) {
-  return FriendRepository();
+  final repository = FriendRepository();
+  // 第六十批：Provider 被销毁时关闭底层 Dio/HttpClient，避免资源泄漏。
+  ref.onDispose(repository.dispose);
+  return repository;
 });
 
 /// 动态列表 Provider（按 offset 缓存）

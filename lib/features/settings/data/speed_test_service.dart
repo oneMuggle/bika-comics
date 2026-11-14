@@ -73,21 +73,34 @@ class SpeedTestService {
     final stopwatch = Stopwatch()..start();
     int bytes = 0;
     try {
-      final response = await Dio().get<ResponseBody>(
-        url,
-        options: Options(responseType: ResponseType.stream),
+      // 第五十九批：此处原本用裸 `Dio()`，绕过代理 —— 用户开启代理后测速
+      // 仍然直连，测出来的不是实际链路速度。改用统一客户端。
+      //
+      // 第六十批：用 `ApiClient.withClient` 包一层，保证测速结束后
+      // `Dio`/`HttpClient` 被关闭（否则每次测速都泄漏一个 HttpClient）。
+      await ApiClient.withClient(
+        () => ApiClient.createClient(
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+        action: (client) async {
+          final response = await client.get<ResponseBody>(
+            url,
+            options: Options(responseType: ResponseType.stream),
+          );
+          final stream = response.data;
+          if (stream == null) return;
+          final completer = Completer<void>();
+          final sub = stream.stream.listen(
+            (chunk) => bytes += chunk.length,
+            onError: (e) => completer.complete(),
+            onDone: () => completer.complete(),
+            cancelOnError: true,
+          );
+          await completer.future.timeout(const Duration(seconds: 30));
+          await sub.cancel();
+        },
       );
-      final stream = response.data;
-      if (stream == null) return 0;
-      final completer = Completer<void>();
-      final sub = stream.stream.listen(
-        (chunk) => bytes += chunk.length,
-        onError: (e) => completer.complete(),
-        onDone: () => completer.complete(),
-        cancelOnError: true,
-      );
-      await completer.future.timeout(const Duration(seconds: 30));
-      await sub.cancel();
     } on TimeoutException {
       // 超时也返回当前已读取的字节
     } on DioException catch (e) {

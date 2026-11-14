@@ -34,8 +34,17 @@ class SettingsStorage {
 
   Future<String?> getApiBaseUrl() => _storage.read(key: _keyApiBaseUrl);
 
-  Future<void> setApiBaseUrl(String url) =>
-      _storage.write(key: _keyApiBaseUrl, value: url);
+  /// 同时写入持久化存储和同步缓存。
+  ///
+  /// 第六十批：此前 `setApiBaseUrl` 只写持久化存储，不更新 [_cache]。
+  /// 而 `ApiClient.resolveBaseUrl()` 读的是**同步缓存**
+  /// （`getApiBaseUrlSync()`），因此用户在设置页改完 API 地址后，
+  /// 该地址要等到下次冷启动 `populateCache()` 才会生效 —— 与
+  /// `setAutoSign` 的既有写法不一致。代理配置同理（见 [setProxyConfig]）。
+  Future<void> setApiBaseUrl(String url) async {
+    _cache[_keyApiBaseUrl] = url;
+    await _storage.write(key: _keyApiBaseUrl, value: url);
+  }
 
   // ================== Proxy Config ==================
 
@@ -51,10 +60,23 @@ class SettingsStorage {
     return ProxyConfig.fromJson(jsonDecode(json));
   }
 
-  Future<void> setProxyConfig(ProxyConfig config) =>
-      _storage.write(key: _keyProxyConfig, value: jsonEncode(config.toJson()));
+  /// 同时写入持久化存储和同步缓存。
+  ///
+  /// 第六十批：此前只写持久化存储，而 `ApiClient.resolveProxyConfig()`
+  /// 读的是**同步缓存**（`getProxyConfigSync()`）。结果是：用户在设置页
+  /// 打开代理后，代理对请求**完全无效**，直到下次冷启动 `populateCache()`
+  /// 才生效。代理开关"必须重启 App 才生效"正是本批要修的核心缺陷。
+  Future<void> setProxyConfig(ProxyConfig config) async {
+    final encoded = jsonEncode(config.toJson());
+    _cache[_keyProxyConfig] = encoded;
+    await _storage.write(key: _keyProxyConfig, value: encoded);
+  }
 
-  Future<void> clearProxyConfig() => _storage.delete(key: _keyProxyConfig);
+  /// 清除代理配置（同时清掉同步缓存）。
+  Future<void> clearProxyConfig() async {
+    _cache.remove(_keyProxyConfig);
+    await _storage.delete(key: _keyProxyConfig);
+  }
 
   // ================== Theme ==================
 
