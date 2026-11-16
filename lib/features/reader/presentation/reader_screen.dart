@@ -8,6 +8,7 @@ import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/utils/media_url.dart';
 import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../../comic/domain/comic_model.dart' as comic;
@@ -23,8 +24,14 @@ final episodePagesProvider =
   );
   final data = response.data['data'];
   // 返回图片 URL 列表
+  //
+  // 桌面端 `src/task/task_download.py:342` 用
+  //   `ToolUtil.GetRealUrl(picInfo.fileServer, picInfo.path)`
+  // 得到可下载的完整 URL。pica 的 `media.path` 是**相对路径**
+  // （实测：'tobeimg/xxx/....jpg'），`media.fileServer` 才是主机。
+  // 直接用 `path` 会得到相对路径，图片无法加载。
   final pages = (data['pages']['docs'] as List)
-      .map<String>((p) => p['media']['path'] ?? p['media']['url'] ?? '')
+      .map<String>((p) => mediaUrlFrom(p['media']))
       .where((url) => url.isNotEmpty)
       .toList();
   return pages;

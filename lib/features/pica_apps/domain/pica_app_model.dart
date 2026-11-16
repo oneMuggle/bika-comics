@@ -11,6 +11,8 @@ library;
 
 import 'package:flutter/foundation.dart';
 
+import '../../../core/utils/media_url.dart';
+
 /// Pica App 图标
 @immutable
 class PicaAppIcon {
@@ -20,16 +22,21 @@ class PicaAppIcon {
   const PicaAppIcon({required this.fileServer, required this.path});
 
   /// 拼接后的完整 URL
-  String get url => fileServer.isEmpty ? path : '$fileServer$path';
+  /// 桌面端 `ToolUtil.GetRealUrl(fileServer, path)`。
+  /// pica 的 `path` 是相对路径，`'$fileServer$path'` 会缺分隔符（非法 URL）。
+  String get url => resolveMediaUrl(fileServer, path);
 
   factory PicaAppIcon.fromJson(dynamic raw) {
     if (raw is String) {
       return PicaAppIcon(fileServer: '', path: raw);
     }
     if (raw is Map) {
+      // 兼容 `{url}` 形态：某些接口直接给完整地址，没有 fileServer。
+      final path = raw['path']?.toString() ?? '';
+      final url = raw['url']?.toString() ?? '';
       return PicaAppIcon(
         fileServer: raw['fileServer']?.toString() ?? '',
-        path: raw['path']?.toString() ?? '',
+        path: path.isNotEmpty ? path : url,
       );
     }
     return const PicaAppIcon(fileServer: '', path: '');

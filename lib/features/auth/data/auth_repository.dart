@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/storage/secure_storage.dart';
+import '../../../core/utils/media_url.dart';
 import '../../../shared/constants/api_constants.dart';
 import '../domain/auth_state.dart';
 
@@ -40,7 +41,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         id: user['_id'] ?? user['id'] ?? '',
         name: user['name'] ?? '',
         email: email,
-        avatar: user['avatar']?['path'] ?? '',
+        avatar: mediaUrlFrom(user['avatar']),
       );
       await SecureStorageHolder.instance.setApiToken(token);
 
@@ -51,7 +52,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           id: user['_id'] ?? user['id'] ?? '',
           name: user['name'] ?? '',
           email: email,
-          avatar: user['avatar']?['path'] ?? '',
+          avatar: mediaUrlFrom(user['avatar']),
           birthday: user['birthday'],
           level: user['level'] ?? 0,
           gender: user['gender'] ?? 'm',
@@ -99,7 +100,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           id: user['_id'] ?? user['id'] ?? '',
           name: user['name'] ?? '',
           email: email,
-          avatar: user['avatar']?['path'] ?? '',
+          avatar: mediaUrlFrom(user['avatar']),
           birthday: user['birthday'],
           level: user['level'] ?? 0,
           gender: user['gender'] ?? 'm',
@@ -163,7 +164,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         id: user['_id'] ?? user['id'] ?? '',
         name: user['name'] ?? '',
         email: email,
-        avatar: user['avatar']?['path'] ?? '',
+        avatar: mediaUrlFrom(user['avatar']),
       );
 
       state = AuthState(
@@ -173,7 +174,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           id: user['_id'] ?? user['id'] ?? '',
           name: user['name'] ?? '',
           email: email,
-          avatar: user['avatar']?['path'] ?? '',
+          avatar: mediaUrlFrom(user['avatar']),
           birthday: user['birthday'],
           level: user['level'] ?? 0,
           gender: user['gender'] ?? 'm',
@@ -221,11 +222,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final response = await _api.get(ApiEndpoints.userProfile);
       final user = response.data['data']?['user'] ?? response.data['data'];
       if (user is! Map) return;
+      // 头像可能是 {fileServer, path} 形态，必须走 mediaUrlFrom 拼接，
+      // 直接取 path 会得到相对路径（图片加载不出来）。
+      final freshAvatar = mediaUrlFrom(user['avatar']);
       final updated = AuthUser(
         id: user['_id'] ?? user['id'] ?? state.user?.id ?? '',
         name: user['name'] ?? state.user?.name ?? '',
         email: user['email'] ?? state.user?.email ?? '',
-        avatar: user['avatar']?['path'] ?? state.user?.avatar ?? '',
+        avatar:
+            freshAvatar.isNotEmpty ? freshAvatar : (state.user?.avatar ?? ''),
         birthday: user['birthday'] ?? state.user?.birthday,
         level: user['level'] ?? state.user?.level ?? 0,
         gender: user['gender'] ?? state.user?.gender ?? 'm',

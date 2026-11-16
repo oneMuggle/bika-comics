@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/db/database.dart';
+import '../../../core/utils/media_url.dart';
 import '../../../shared/constants/api_constants.dart';
 
 /// 下载状态枚举
@@ -529,7 +530,9 @@ class DownloadRepository {
           if (_pausedTasks.containsKey(task.comicId)) break;
 
           final page = pages[i];
-          final imageUrl = page['path'] ?? page['url'] ?? '';
+          // 桌面端 `task_download.py:342`：`GetRealUrl(fileServer, path)`
+          // pica 的 `path` 是相对路径，必须与 `fileServer` 拼接。
+          final imageUrl = mediaUrlFrom(page);
           if (imageUrl.isEmpty) continue;
 
           // 下载图片

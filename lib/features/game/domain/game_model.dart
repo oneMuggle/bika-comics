@@ -13,6 +13,8 @@ library;
 
 import 'package:flutter/foundation.dart';
 
+import '../../../core/utils/media_url.dart';
+
 /// 游戏图标（封面）
 @immutable
 class GameIcon {
@@ -22,16 +24,21 @@ class GameIcon {
   const GameIcon({required this.fileServer, required this.path});
 
   /// 拼接后的完整 URL
-  String get url => fileServer.isEmpty ? path : '$fileServer$path';
+  /// 桌面端 `game_info_view.py:157` 用 `ToolUtil.GetRealUrl(fileServer, path)`。
+  /// pica 的 `path` 是相对路径，`'$fileServer$path'` 会缺分隔符（非法 URL）。
+  String get url => resolveMediaUrl(fileServer, path);
 
   factory GameIcon.fromJson(dynamic raw) {
     if (raw is String) {
       return GameIcon(fileServer: '', path: raw);
     }
     if (raw is Map) {
+      // 兼容 `{url}` 形态：某些接口直接给完整地址，没有 fileServer。
+      final path = raw['path']?.toString() ?? '';
+      final url = raw['url']?.toString() ?? '';
       return GameIcon(
         fileServer: raw['fileServer']?.toString() ?? '',
-        path: raw['path']?.toString() ?? '',
+        path: path.isNotEmpty ? path : url,
       );
     }
     return const GameIcon(fileServer: '', path: '');

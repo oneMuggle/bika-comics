@@ -10,9 +10,13 @@ void main() {
         'description': 'Android 第三方客户端',
         'url': 'https://example.com/download',
         'platform': 'android',
+        // 真实 pica 媒体形态：fileServer 是主机，path 是相对路径。
+        // 见 `/home/ubuntu/extract_db/book.db` 真实抓取数据：
+        //   fileServer = 'https://storage1.picacomic.com'
+        //   path       = 'tobeimg/.../xxx.jpg'   （相对，无前导 /）
         'icon': <String, String>{
-          'fileServer': 'https://cdn.example.com',
-          'path': '/apps/001.png',
+          'fileServer': 'https://storage1.picacomic.com',
+          'path': 'tobeimg/app/001.png',
         },
         'sort': 100,
       });
@@ -21,7 +25,11 @@ void main() {
       expect(app.description, 'Android 第三方客户端');
       expect(app.url, 'https://example.com/download');
       expect(app.platform, 'android');
-      expect(app.icon.url, 'https://cdn.example.com/apps/001.png');
+      // 桌面端 `ToolUtil.GetRealUrl` 的等价拼接：host + '/static/' + 相对路径。
+      // 旧实现 `'$fileServer$path'` 会粘连成
+      // 'https://storage1.picacomic.comtobeimg/app/001.png'（非法 URL）。
+      expect(app.icon.url,
+          'https://storage1.picacomic.com/static/tobeimg/app/001.png');
       expect(app.sort, 100);
       expect(app.isClickable, isTrue);
     });

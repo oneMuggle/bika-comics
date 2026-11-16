@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/utils/media_url.dart';
+
 /// 漫画模型
 @immutable
 class Comic {
@@ -118,7 +120,10 @@ class Comic {
     if (cover == null) return '';
     if (cover is String) return cover;
     if (cover is Map) {
-      return cover['path'] ?? cover['url'] ?? '';
+      // 桌面端 `book_info_view.py:354` 用 `ToolUtil.GetRealUrl(fileServer, path)`
+      // 拼接。pica 返回的 `path` 是相对路径，必须与 `fileServer` 组合，
+      // 否则 `CachedNetworkImage` 拿到相对路径无法加载。
+      return mediaUrlFrom(cover);
     }
     return '';
   }

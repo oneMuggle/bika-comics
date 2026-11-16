@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/utils/media_url.dart';
 import '../../../shared/constants/app_colors.dart';
 import '../../../shared/widgets/cached_image.dart';
 
@@ -105,9 +106,8 @@ class GameComment {
     final avatar = user['avatar'];
     if (avatar is String) return avatar;
     if (avatar is Map) {
-      final fs = avatar['fileServer']?.toString() ?? '';
-      final p = avatar['path']?.toString() ?? '';
-      return fs.isEmpty ? p : '$fs$p';
+      // 桌面端 `user_list_widget.py:116` 用 `ToolUtil.GetRealUrl(fileServer, path)`
+      return mediaUrlFrom(avatar);
     }
     return '';
   }

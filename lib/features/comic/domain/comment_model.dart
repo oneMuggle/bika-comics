@@ -1,3 +1,5 @@
+import '../../../core/utils/media_url.dart';
+
 /// 评论模型
 class Comment {
   final String id;
@@ -44,7 +46,8 @@ class Comment {
     if (avatar == null) return '';
     if (avatar is String) return avatar;
     if (avatar is Map) {
-      return avatar['path'] ?? avatar['url'] ?? '';
+      // 桌面端 `user_list_widget.py:116` 用 `ToolUtil.GetRealUrl(fileServer, path)`
+      return mediaUrlFrom(avatar);
     }
     return '';
   }

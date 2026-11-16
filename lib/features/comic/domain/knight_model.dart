@@ -6,6 +6,8 @@ library;
 
 import 'package:flutter/foundation.dart';
 
+import '../../../core/utils/media_url.dart';
+
 /// 骑士榜用户头像
 @immutable
 class KnightAvatar {
@@ -15,16 +17,21 @@ class KnightAvatar {
   const KnightAvatar({required this.fileServer, required this.path});
 
   /// 拼接后的完整 URL
-  String get url => fileServer.isEmpty ? path : '$fileServer$path';
+  /// 桌面端 `ToolUtil.GetRealUrl(fileServer, path)`。
+  /// pica 的 `path` 是相对路径，`'$fileServer$path'` 会缺分隔符（非法 URL）。
+  String get url => resolveMediaUrl(fileServer, path);
 
   factory KnightAvatar.fromJson(dynamic raw) {
     if (raw is String) {
       return KnightAvatar(fileServer: '', path: raw);
     }
     if (raw is Map<String, dynamic>) {
+      // 兼容 `{url}` 形态：某些接口直接给完整地址，没有 fileServer。
+      final path = raw['path']?.toString() ?? '';
+      final url = raw['url']?.toString() ?? '';
       return KnightAvatar(
-        fileServer: raw['fileServer'] ?? '',
-        path: raw['path'] ?? '',
+        fileServer: raw['fileServer']?.toString() ?? '',
+        path: path.isNotEmpty ? path : url,
       );
     }
     return const KnightAvatar(fileServer: '', path: '');
