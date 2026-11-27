@@ -9,8 +9,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/db/database.dart';
-import '../../../core/utils/media_url.dart';
-import '../../../shared/constants/api_constants.dart';
+import '../../comic/data/comic_repository.dart';
 
 /// 下载状态枚举
 enum DownloadTaskStatus {
@@ -190,6 +189,11 @@ class EpisodeDownloadProgress {
 class DownloadRepository {
   final AppDatabase _db;
   final Dio _api = ApiClient.instance;
+
+  /// 第六十二批：章节图片的解析与分页逻辑**必须**与阅读器共用同一份实现，
+  /// 否则会重演「阅读正常、下载全空」的历史故障（同一个 API 两个消费点
+  /// 写法不一致）。
+  final ComicRepository _comicRepo = ComicRepository();
 
   // 下载队列
   final List<DownloadTask> _downloadQueue = [];
@@ -502,15 +506,26 @@ class DownloadRepository {
       if (_pausedTasks.containsKey(task.comicId)) break;
 
       try {
-        // 获取章节图片
-        final response = await _api.get(
-          ApiEndpoints.episodePages(task.comicId, episodeId),
+        // 获取章节图片（自动翻完所有分页组）
+        //
+        // 第六十二批：此前固定请求 `?page=1`，一个章节若图片数超过
+        // 服务端单页上限（200 张），**第 200 张之后全部丢失**。
+        // 真实 API 抓取数据（150,574 条漫画）显示 6,354 部单章漫画的
+        // 一章图片数超过 200，最多的一章 4,896 张 = 25 个分页组。
+        // 桌面端同样按需翻页（`task_download.py:283`
+        // `loadPage = task.index // picLimit + 1`）。
+        //
+        // 这里复用共享的 repository 方法，与阅读器走**同一段代码**。
+        //
+        // cancelToken 必须透传：翻页本身也是网络请求，
+        // 用户点"暂停/取消"时应当立刻中断，而不是把 25 个分页组
+        // 全部拉完才开始生效。
+        final imageUrls = await _comicRepo.getAllEpisodeImages(
+          task.comicId,
+          episodeId,
           cancelToken: cancelToken,
         );
-
-        final data = response.data['data'];
-        final pages = data['pages']['docs'] as List;
-        final totalPages = pages.length;
+        final totalPages = imageUrls.length;
 
         // 更新章节总页数
         final download = await _db.getDownloadByComicId(task.comicId);
@@ -525,14 +540,27 @@ class DownloadRepository {
         await epsDir.create(recursive: true);
 
         // 下载每一页
-        for (int i = 0; i < pages.length; i++) {
+        for (int i = 0; i < imageUrls.length; i++) {
           if (cancelToken.isCancelled) break;
           if (_pausedTasks.containsKey(task.comicId)) break;
 
-          final page = pages[i];
-          // 桌面端 `task_download.py:342`：`GetRealUrl(fileServer, path)`
-          // pica 的 `path` 是相对路径，必须与 `fileServer` 拼接。
-          final imageUrl = mediaUrlFrom(page);
+          final imageUrl = imageUrls[i];
+          // 桌面端 `task_download.py:342`：`GetRealUrl(fileServer, path)`，
+          // 取的是 `data['media']` 里的 fileServer/path
+          // （桌面端 `src/tools/book.py:251`：`ToolUtil.ParseFromData(picInfo, data['media'])`）。
+          //
+          // 第六十二批修复：此前这里把**整个 page doc** 传给 `mediaUrlFrom`，
+          // 而 API 的 page doc 是**包装对象**，媒体字段嵌套在 `media` 键下：
+          //   { "_id": "...",
+          //     "media": { "fileServer": "...", "path": "...", "originalName": "..." } }
+          // 直接对包装对象取 fileServer/path 一律得到空串 ->
+          // `mediaUrlFrom` 返回 '' -> 被下面的 `if (imageUrl.isEmpty) continue;`
+          // 全部跳过 -> **每一章都是 0 张图下载成功**。
+          // 阅读器 (`reader_screen.dart`) 用的是 `p['media']`，所以阅读能显示、
+          // 下载却全空 —— 正是"同一个 API 两个消费点写法不一致"的典型故障。
+          //
+          // 现在 URL 由共享函数 `pageDocImageUrl` 统一解析，
+          // 两个消费点不可能再分叉。
           if (imageUrl.isEmpty) continue;
 
           // 下载图片

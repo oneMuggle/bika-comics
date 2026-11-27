@@ -1,0 +1,467 @@
+================================================================================
+DESKTOP PROJECT API / UI INVENTORY
+Project: /home/ubuntu/project/picacg-qt-temp  (PicACG - PySide6 / Qt desktop client)
+Source root: src/
+Generated for: desktop -> mobile migration audit
+Format: pipe-delimited machine-readable records (ASCII only)
+================================================================================
+
+--------------------------------------------------------------------------------
+SECTION 1: UI MODULE INVENTORY
+Format: UIFILE|<view dir>|<file>|<classes>|<description>
+         UIMODULE|<view dir>|<file count>|<class count>
+--------------------------------------------------------------------------------
+UIMODULE|category|2|2
+UIFILE|category|__init__.py|-|Package marker for the category module (empty).
+UIFILE|category|category_view.py|CategoryView|Category browse screen: loads the server category list (CategoryReq), renders category book items, handles item selection and static category injection.
+UIFILE|category|rank_view.py|RankView|Ranking screen: fetches H24/D7/D30 leaderboards (RankReq) and the knight leaderboard (KnightRankReq), paginates tabs and renders book/user lists.
+
+UIMODULE|chat|4|4
+UIFILE|chat|__init__.py|-|Package marker for the legacy chat module (empty).
+UIFILE|chat|chat_msg_widget.py|ChatMsgWidget|Single legacy chat message bubble widget: avatar/head picture, picture, comment text, copy, reply, at-user and at-private actions.
+UIFILE|chat|chat_room_widget.py|ChatRoomWidget|Legacy chat room panel: socket.io websocket join/leave, ping/pong, message send/receive, picture download, online count, room info, icon selection.
+UIFILE|chat|chat_view.py|ChatView|Legacy chat channel list screen: fetches chat channels (GetChatReq), lists rooms, opens ChatRoomWidget.
+UIFILE|chat|chat_websocket.py|ChatWebSocket|Websocket client wrapper for the legacy chat: builds wss://<host>/socket.io/?EIO=3&transport=websocket URL, threaded send queue, open/message/error/close signals.
+
+UIMODULE|chat_new|4|5
+UIFILE|chat_new|__init__.py|-|Package marker for the new chat module (empty).
+UIFILE|chat_new|chat_new_msg_widget.py|ChatNewMsgWidget|New chat message bubble widget: avatar, picture, reply picture, copy/reply/at actions, audio path open.
+UIFILE|chat_new|chat_new_room_widget.py|MsgData,ChatNewRoomWidget|New chat room panel: MsgData parses websocket payloads; ChatNewRoomWidget handles join/leave, message and image receive, send message/image (SendNewChatMsgReq, SendNewChatImgMsgReq), online count, room info, icons.
+UIFILE|chat_new|chat_new_view.py|ChatNewView|New chat screen: login to new chat backend (GetNewChatLoginReq), load profile (GetNewChatProfileReq), load rooms (GetNewChatReq) and legacy channel list (GetChatReq), opens ChatNewRoomWidget.
+UIFILE|chat_new|chat_new_websocket.py|ChatNewWebSocket|Websocket client for the new chat: builds wss://<NewChatUrl host>?token={token}&room={roomId}, threaded send queue, signal emission.
+
+UIMODULE|comment|5|5
+UIFILE|comment|__init__.py|-|Package marker for the comment module (empty).
+UIFILE|comment|comment_view.py|CommentView|Comic comment tab; wires the shared CommentWidget to GetCommentsReq / SendCommentReq / CommentsLikeReq / CommentsReportReq.
+UIFILE|comment|fried_comment_view.py|FriedCommentView|Wikawika "fried" post comment tab; wires CommentWidget to AppCommentInfoReq / AppSendCommentInfoReq / AppCommentLikeReq / CommentsReportReq.
+UIFILE|comment|game_comment_view.py|GameCommentView|Game-zone comment tab; wires CommentWidget to GetGameCommentsReq / SendGameCommentsReq / GameCommentsLikeReq / CommentsReportReq.
+UIFILE|comment|my_comment_view.py|MyCommentView|"My comments" tab; wires CommentWidget to GetUserCommentReq / SendCommentReq / CommentsLikeReq / CommentsReportReq.
+UIFILE|comment|sub_comment_view.py|SubCommentView|Sub-comment (child comment) list screen; uses GetCommentsChildrenReq / SendCommentChildrenReq / CommentsLikeReq / CommentsReportReq.
+
+UIMODULE|convert|5|5
+UIFILE|convert|__init__.py|-|Package marker for the convert module (empty).
+UIFILE|convert|convert_db.py|ConvertDb|SQLite persistence layer for conversion records (convert.db): add/delete/load convert tasks.
+UIFILE|convert|convert_item.py|ConvertItem,DownloadEpsItem|ConvertItem models a book/eps conversion record (download progress, convert progress, speed, paths); DownloadEpsItem models a per-eps convert task.
+UIFILE|convert|convert_status.py|ConvertStatus|Task state machine for conversion: wait/downloading/pause states, table item updates, DB persistence, timeout handler, start download and start convert callbacks.
+UIFILE|convert|convert_view.py|ConvertView|Conversion screen: table of convert tasks, start/stop/pause all, per-item download+convert control, open file path, open book info, sorting and auto-convert toggle.
+
+UIMODULE|download|7|7
+UIFILE|download|__init__.py|-|Package marker for the download module (empty).
+UIFILE|download|download_all_item.py|DownloadAllItem|Model for a bulk-download book entry (bookId, title, page count, table row, all/chip selection flags).
+UIFILE|download|download_all_view.py|DownloadAllView|Bulk download screen: select all/chip books, start download, load book metadata (GetComicsBookReq), open book info, upload to NAS.
+UIFILE|download|download_db.py|DownloadDb|SQLite persistence layer for download records (download.db): add/delete/load download and download-eps records.
+UIFILE|download|download_dir_view.py|DownloadDirView|Modal dialog to pick the local download save directory.
+UIFILE|download|download_item.py|SaveNameType,DownloadItem,DownloadEpsItem|SaveNameType enumerates naming schemes (Default, AuthorAndTitle, AuthorDir); DownloadItem models a book download record with progress/speed/convert state; DownloadEpsItem models a per-eps download record.
+UIFILE|download|download_status.py|DownloadStatus|Task state machine for downloading and converting: wait/downloading/convert/pause states, DB persistence, timeout handler, start download/convert callbacks.
+UIFILE|download|download_view.py|DownloadView|Main download screen: download/convert task table, start/stop/pause all, per-item control, re-download and skip options, local book import, NAS upload, search and hide filters.
+
+UIMODULE|fried|2|2
+UIFILE|fried|__init__.py|-|Package marker for the fried module (empty).
+UIFILE|fried|fried_view.py|FriedView|Wikawika community board screen: paginated post feed (AppInfoReq), renders fried message cards, image loading, jump-to-page.
+UIFILE|fried|qt_fried_msg.py|QtFriedMsg|Single fried post card widget: body text, pictures, comment list loading (AppCommentInfoReq), open comment, copy and audio path actions.
+
+UIMODULE|game|1|1
+UIFILE|game|__init__.py|-|Package marker for the game module (empty).
+UIFILE|game|game_view.py|GameView|Game zone screen: paginated game list (GetGameReq), refresh, jump page, page label update.
+
+UIMODULE|help|2|2
+UIFILE|help|__init__.py|-|Package marker for the help module (empty).
+UIFILE|help|help_log_widget.py|HelpLogWidget|Log console widget: writes log lines, run-enable toggle, executes ad-hoc code from the log panel.
+UIFILE|help|help_view.py|HelpView|Help/about screen: app update check (CheckUpdateReq / CheckUpdateInfoReq / CheckUpdateConfigReq), DNS check, local book DB check, daily and weekly database download (CheckUpdateDatabaseReq / DownloadDatabaseReq / DownloadDatabaseWeekReq), log dir, proxy and issue links.
+
+UIMODULE|index|1|1
+UIFILE|index|__init__.py|-|Package marker for the index module (empty).
+UIFILE|index|index_view.py|IndexView|Home/index screen: curated collections tabs (GetCollectionsReq) and random comic (GetRandomReq), renders book lists.
+
+UIMODULE|info|4|4
+UIFILE|info|__init__.py|-|Package marker for the info module (empty).
+UIFILE|info|book_eps_view.py|BookEpsView|Chapter (eps) list screen for a book: loads book info (GetComicsBookReq) and eps pages (GetComicsBookEpsReq), select-all, start download, open local book.
+UIFILE|info|book_info_right.py|BookInfoRight|Right-side detail panel widget for the book info screen (pure UI, no API).
+UIFILE|info|book_info_view.py|BookInfoView|Book detail screen: book info, eps list, favourite (FavoritesAdd), like (BookLikeReq), share-id exchange (GetShareIdReq / GetIdByShareIdReq), recommendation, tags, categories, read/download actions.
+UIFILE|info|game_info_view.py|GameInfoView|Game detail screen: loads game info (GetGameInfoReq), renders game pictures, opens associated books and comments, copy iOS/Android links.
+
+UIMODULE|main|1|1
+UIFILE|main|__init__.py|-|Package marker for the main module (empty).
+UIFILE|main|main_view.py|MainView|Main application window: builds the tab bar and sub-stack of all views, window size/screen handling, login dialog launch, read-view switching, close/exit handling, system tray integration.
+
+UIMODULE|nas|5|5
+UIFILE|nas|__init__.py|-|Package marker for the nas module (empty).
+UIFILE|nas|nas_add_view.py|NasAddView|Modal dialog to add a NAS target (webdav/smb/local), with link test and save.
+UIFILE|nas|nas_db.py|NasDb|SQLite persistence layer for NAS targets and NAS upload records (nas db): add/delete/load nas info and upload tasks.
+UIFILE|nas|nas_item.py|SaveNameType,NasUploadItem,NasInfoItem|SaveNameType enumerates upload naming schemes; NasUploadItem models a NAS upload task (cbz flag, progress, xml lookup, next eps); NasInfoItem models a NAS server configuration.
+UIFILE|nas|nas_status.py|NasStatus|Task state machine for NAS uploads: wait/downloading/pause states, DB persistence, timeout handler, xml info fetch, upload callbacks.
+UIFILE|nas|nas_view.py|NasView|NAS screen: table of NAS targets and upload tasks, add/delete NAS, start/pause uploads, upload status updates, open book info.
+
+UIMODULE|read|9|10
+UIFILE|read|__init__.py|-|Package marker for the read module (empty).
+UIFILE|read|read_enum.py|ReadMode,QtFileData|ReadMode enumerates reading layouts (UpDown, LeftRight, LeftRightDouble, RightLeftDouble, LeftRightScroll, RightLeftScroll); QtFileData models one page image with scale, waifu2x variant and read position.
+UIFILE|read|read_frame.py|ReadFrame|Container frame for the reader: hosts the graphics view and the read toolbar, handles resize and scale, updates the progress bar.
+UIFILE|read|read_graphics.py|ReadGraphicsView|QGraphicsView-based reader canvas: page navigation, wheel zoom, label/pixmap item recycling, GIF support, page-change signals.
+UIFILE|read|read_opengl.py|ReadOpenGL|QOpenGLWidget renderer used for accelerated page painting.
+UIFILE|read|read_pool.py|QtReadImgPoolManager|Singleton pool recycling QGraphicsProxyWidget and QGraphicsPixmapItem objects for the reader.
+UIFILE|read|read_proxy.py|ReadProxy|Reader data proxy: triggers book/eps download init, tracks max page count, restores last read page and writes reading history.
+UIFILE|read|read_qgraphics_proxy_widget.py|ReadQGraphicsProxyWidget|QGraphicsProxyWidget that renders a page pixmap (with GIF data support) into the reader scene.
+UIFILE|read|read_tool.py|QtCustomSlider,ReadTool|Reader overlay toolbar: page slider (QtCustomSlider), zoom, read-mode switch, fullscreen, next/prev eps, copy picture, waifu2x trigger and auto-scroll/auto-turn timers.
+UIFILE|read|read_view.py|ReadView|Reader screen: manages the reading canvas, page download/pool pipeline, waifu2x conversion, history recording, read mode and double-page options, copy file/picture.
+
+UIMODULE|search|2|1
+UIFILE|search|__init__.py|-|Package marker for the search module (empty).
+UIFILE|search|search_bar.py|-|Empty placeholder file (0 bytes) for the search bar widget (no classes, no code).
+UIFILE|search|search_view.py|SearchView|Search screen: keyword hot-list (keywords), category tree, category search (CategoriesSearchReq), advanced search (AdvancedSearchReq), sorting, paging, local-search results, recommendation (GetComicsRecommendation, GetRecommendByIdReq).
+
+UIMODULE|setting|2|2
+UIFILE|setting|__init__.py|-|Package marker for the setting module (empty).
+UIFILE|setting|setting_sr_select_view.py|SettingSrSelectView|Modal dialog to pick the super-resolution (waifu2x) model used by cover/read/download pipelines.
+UIFILE|setting|setting_view.py|SettingView|Settings screen: language, theme, proxy, download paths, image quality, timeout, GPU/waifu2x options, save/load settings, open directories.
+
+UIMODULE|tool|10|13
+UIFILE|tool|__init__.py|-|Package marker for the tool module (empty).
+UIFILE|tool|batch_sr_tool_db.py|BatchSrToolDb|SQLite persistence layer for the batch super-resolution queue (batch_sr_tool.db).
+UIFILE|tool|batch_sr_tool_view.py|BatchSrItem,BatchSrToolView|Batch super-resolution screen: import a directory of images, run batch upscale with thread count control, per-item pause/cancel, progress and convert labels, output path selection.
+UIFILE|tool|forbid_words_view.py|ForbidWordsItem,ForbidWordsView|Modal editor for the forbidden-words filter list (add/edit/delete items, inline item widget).
+UIFILE|tool|local_eps_read_view.py|LocalEpsReadView|Local reading entry point: pick a directory, list local eps, and open a local book for reading.
+UIFILE|tool|local_fold_view.py|FavoriteFoldItem,LocalFoldView|Modal editor for the local favourite folder list (add/edit/delete/move items, inline item widget).
+UIFILE|tool|local_read_all_view.py|LocalReadAllView|All-local-books screen: table of local books, select/deselect, bulk delete, open book info.
+UIFILE|tool|local_read_db.py|LocalReadDb|SQLite persistence layer for the local library (local_read.db): categories, books, eps records, search and import of download directories.
+UIFILE|tool|local_read_eps_view.py|LocalReadEpsView|Local chapter list screen: lists eps of a locally stored book and opens them for reading.
+UIFILE|tool|local_read_view.py|LocalReadView|Local library screen: category tree, book grid, sorting, drag-and-drop import of download dirs, search, delete, category management.
+UIFILE|tool|waifu2x_tool_view.py|Waifu2xToolView|Single-image super-resolution tool: open image, zoom, run waifu2x conversion, save result, model selection.
+
+UIMODULE|user|7|7
+UIFILE|user|__init__.py|-|Package marker for the user module (empty).
+UIFILE|user|change_password_widget.py|ChangePasswordWidget|Change password widget: re-login with old credentials (LoginReq) then change the password (ChangePasswordReq).
+UIFILE|user|favorite_view.py|FavoriteView|Favourites screen: paginated favourites list (FavoritesReq), add/remove favourite (FavoritesAdd), local favourites toggle, search and sorting.
+UIFILE|user|history_view.py|QtHistoryData,HistoryView|Reading history screen: QtHistoryData models a history row; HistoryView lists, deletes and paginates reading history.
+UIFILE|user|login_proxy_widget.py|LoginProxyWidget|Login-adjacent proxy/speed-test panel: proxy server list, speed test (SpeedTestReq), ping test (SpeedTestPingReq), server switching, saved proxy settings.
+UIFILE|user|login_view.py|LoginView|Modal login dialog hosting the login, register, change-password and proxy sub-widgets with auto-login handling.
+UIFILE|user|login_widget.py|LoginWidget|Email/password login form; posts LoginReq and stores the session token.
+UIFILE|user|register_widget.py|RegisterWidget|Account registration form; posts RegisterReq with email, password, name, birthday, gender and the three security questions.
+
+--------------------------------------------------------------------------------
+SECTION 2: API ENDPOINT INVENTORY
+Format: ENDPOINT|<HTTP method>|<path template>|<Req class name>
+Base for config.Url     = https://picaapi.picacomic.com/
+Base for config.BaseUrl = http://68.183.234.72/
+Base for config.NewChatUrl = https://live-server.bidobido.xyz/
+--------------------------------------------------------------------------------
+ENDPOINT|GET|init|InitReq
+ENDPOINT|GET|init?platform=android|InitAndroidReq
+ENDPOINT|POST|auth/sign-in|LoginReq
+ENDPOINT|POST|auth/register|RegisterReq
+ENDPOINT|POST|auth/forgot-password|ForgotPasswordReq
+ENDPOINT|POST|auth/reset-password|ResetPasswordReq
+ENDPOINT|PUT|users/password|ChangePasswordReq
+ENDPOINT|GET|users/profile|GetUserInfo
+ENDPOINT|GET|users/my-comments?page={page}|GetUserCommentReq
+ENDPOINT|PUT|users/avatar|SetAvatarInfoReq
+ENDPOINT|PUT|users/{userId}/title|SetTitleReq
+ENDPOINT|POST|users/punch-in|PunchIn
+ENDPOINT|GET|categories|CategoryReq
+ENDPOINT|GET|categories|SpeedTestPingReq
+ENDPOINT|GET|users/favourite?s={sort}&page={page}|FavoritesReq
+ENDPOINT|POST|comics/{bookId}/favourite|FavoritesAdd
+ENDPOINT|POST|comics/{bookId}/like|BookLikeReq
+ENDPOINT|POST|comics/advanced-search?page={page}|AdvancedSearchReq
+ENDPOINT|GET|comics?page={page}&c={categories}&s={sort}|CategoriesSearchReq
+ENDPOINT|GET|comics/leaderboard?tt={tt}&ct=VC|RankReq
+ENDPOINT|GET|comics/knight-leaderboard|KnightRankReq
+ENDPOINT|GET|comics/{bookId}|GetComicsBookReq
+ENDPOINT|GET|comics/{bookId}/eps?page={page}|GetComicsBookEpsReq
+ENDPOINT|GET|comics/{bookId}/order/{epsId}/pages?page={page}|GetComicsBookOrderReq
+ENDPOINT|GET|comics/{bookId}/recommendation|GetComicsRecommendation
+ENDPOINT|GET|comics/{bookId}/comments?page={page}|GetCommentsReq
+ENDPOINT|POST|comics/{bookId}/comments|SendCommentReq
+ENDPOINT|POST|comments/{commentId}/like|CommentsLikeReq
+ENDPOINT|POST|comments/{commentId}/report|CommentsReportReq
+ENDPOINT|POST|comments/{commentId}|SendCommentChildrenReq
+ENDPOINT|GET|comments/{commentId}/childrens?page={page}|GetCommentsChildrenReq
+ENDPOINT|GET|keywords|GetKeywords
+ENDPOINT|GET|chat|GetChatReq
+ENDPOINT|GET|collections|GetCollectionsReq
+ENDPOINT|GET|comics/random|GetRandomReq
+ENDPOINT|GET|pica-apps|GetAPPsReq
+ENDPOINT|GET|games?page={page}|GetGameReq
+ENDPOINT|GET|games/{gameId}|GetGameInfoReq
+ENDPOINT|GET|games/{gameId}/comments?page={page}|GetGameCommentsReq
+ENDPOINT|POST|comments/{gameId}/like|GameCommentsLikeReq
+ENDPOINT|POST|games/{gameId}/comments|SendGameCommentsReq
+ENDPOINT|POST|auth/signin|GetNewChatLoginReq
+ENDPOINT|GET|room/list|GetNewChatReq
+ENDPOINT|GET|user/profile|GetNewChatProfileReq
+ENDPOINT|POST|message/send-message|SendNewChatMsgReq
+ENDPOINT|POST|message/send-image|SendNewChatImgMsgReq
+ENDPOINT|GET|https://post-api.wikawika.xyz/posts?offset={page}|AppInfoReq
+ENDPOINT|GET|https://post-api.wikawika.xyz/posts/{id}/comments?offset={page}|AppCommentInfoReq
+ENDPOINT|POST|https://post-api.wikawika.xyz/comments|AppSendCommentInfoReq
+ENDPOINT|PUT|https://post-api.wikawika.xyz/comments/{subId}/like|AppCommentLikeReq
+ENDPOINT|GET|{url}/?token={token}|LoginAPPReq
+ENDPOINT|GET|https://recommend.go2778.com/pic/share/set/?c={id}|GetShareIdReq
+ENDPOINT|GET|https://recommend.go2778.com/pic/share/get/?shareId={shareId}|GetIdByShareIdReq
+ENDPOINT|GET|https://recommend.go2778.com/pic/recommend/get/?c={bookId}|GetRecommendByIdReq
+ENDPOINT|GET|https://storage1.picacomic.com/static/fc75975a-af8e-40c5-8679-725d6f64d6f5.jpg|SpeedTestReq
+ENDPOINT|GET|{url2}/version.txt?version={version}&platform={platform}|CheckUpdateReq
+ENDPOINT|GET|{url2}/version_pre.txt?version={version}&platform={platform}|CheckUpdateReq
+ENDPOINT|GET|{url2}/{newVersion}.txt?version={version}&platform={platform}|CheckUpdateInfoReq
+ENDPOINT|GET|{url2}/config.txt?version={version}&platform={platform}|CheckUpdateConfigReq
+ENDPOINT|GET|{url}|CheckUpdateDatabaseReq
+ENDPOINT|GET|{url}{YYYY-MM-DD}.data|DownloadDatabaseReq
+ENDPOINT|GET|{url}week/{YYYY-MM-DD}_week.data|DownloadDatabaseWeekReq
+ENDPOINT|GET|{imageUrl}|DownloadBookReq
+ENDPOINT|GET|{fileServer}/static/{path}|?
+
+--------------------------------------------------------------------------------
+SECTION 2b: WEBSOCKET / NON-REST ENDPOINTS
+Format: WSENDPOINT|<scheme>|<path template>|<client class>
+--------------------------------------------------------------------------------
+WSENDPOINT|wss|{chatHost}/socket.io/?EIO=3&transport=websocket|ChatWebSocket
+WSENDPOINT|wss|{NewChatUrlHost}?token={token}&room={roomId}|ChatNewWebSocket
+
+--------------------------------------------------------------------------------
+SECTION 2c: NON-API / AUXILIARY NETWORK URLS (no Req class)
+Format: AUXURL|<purpose>|<url template>|<source>
+--------------------------------------------------------------------------------
+AUXURL|app update manifest base (version.txt, version_pre.txt, {ver}.txt, config.txt)|https://app.jpacg.cc/PicACG|config.AppUrl
+AUXURL|app update manifest base|https://app2.jpacg.cc/PicACG|config.AppUrl2
+AUXURL|app update manifest base|https://app3.jpacg.cc/PicACG|config.AppUrl3
+AUXURL|daily database version check|https://raw.jpacg.cc/bika-robot/picacg-database/main/version3.txt|config.DatabaseUpdate
+AUXURL|daily database data download base|https://raw.jpacg.cc/bika-robot/picacg-database/main/data3/|config.DatabaseDownload
+AUXURL|daily database version check (mirror)|https://raw.githubusercontent.com/bika-robot/picacg-database/main/version3.txt|config.DatabaseUpdate2
+AUXURL|daily database data download base (mirror)|https://raw.githubusercontent.com/bika-robot/picacg-database/main/data3/|config.DatabaseDownload2
+AUXURL|image CDN host used by ToolUtil.GetRealUrl|https://storage1.picacomic.com|tools/category.py
+AUXURL|image CDN host used by ToolUtil.GetRealUrl|https://wikawika.xyz/static/|tools/category.py
+AUXURL|chat avatar image host|https://storage.wikawika.xyz/static/|view/chat/chat_room_widget.py
+AUXURL|release / issues / discussion links (browser)|https://github.com/tonquer/picacg-qt|config.UpdateUrlBack
+AUXURL|issues link (browser)|https://github.com/tonquer/picacg-qt/issues|config.Issues1
+AUXURL|proxy discussion link (browser)|https://github.com/tonquer/picacg-qt/discussions/48|config.ProxyUrl1
+AUXURL|waifu2x discussion link (browser)|https://github.com/tonquer/picacg-qt/discussions/76|config.Waifu2xUrl
+AUXURL|webdav upload endpoint (user supplied NAS)|{nasAddress}/dav/onedrive|task/upload_webdav.py
+AUXURL|smb upload endpoint (user supplied NAS)|smb://{nasAddress}:{port}/{serviceName}/{path}|task/upload_smb.py
+AUXURL|local upload endpoint|{localPath}|task/upload_local.py
+AUXURL|dns check host list|config.Url, config.AppUrl, config.AppUrl2, config.AppUrl3, proxy api domains, image server list|view/help/help_view.py
+
+--------------------------------------------------------------------------------
+SECTION 3: API CONSTANT INVENTORY  (src/config/config.py)
+Format: CONST|<NAME>|<value>
+--------------------------------------------------------------------------------
+CONST|BaseUrl|http://68.183.234.72/
+CONST|Url|https://picaapi.picacomic.com/
+CONST|NewChatUrl|https://live-server.bidobido.xyz/
+CONST|ApiKey|C69BAF41DA5ABD1FFEDC6D2FEA56B
+CONST|AppChannel|3
+CONST|Version|2.2.1.3.3.4
+CONST|BuildVersion|45
+CONST|Accept|application/vnd.picacomic.com.v1+json
+CONST|Agent|okhttp/3.8.1
+CONST|Platform|android
+CONST|ImageQuality|original
+CONST|Uuid|defaultUuid
+CONST|ProjectName|PicACG
+CONST|ThreadNum|5
+CONST|DownloadThreadNum|5
+CONST|ResetDownloadCnt|5
+CONST|ResetDownloadCntDefault|2
+CONST|ConvertThreadNum|3
+CONST|ChatSavePath|chat
+CONST|SavePathDir|commies
+CONST|ResetCnt|5
+CONST|IsUseCache|True
+CONST|CachePathDir|cache
+CONST|PreLoading|10
+CONST|PreLook|4
+CONST|IsLoadingPicture|True
+CONST|AppUrl|https://app.jpacg.cc/PicACG
+CONST|AppUrl2|https://app2.jpacg.cc/PicACG
+CONST|AppUrl3|https://app3.jpacg.cc/PicACG
+CONST|UpdateUrlBack|https://github.com/tonquer/picacg-qt
+CONST|DatabaseUpdate|https://raw.jpacg.cc/bika-robot/picacg-database/main/version3.txt
+CONST|DatabaseDownload|https://raw.jpacg.cc/bika-robot/picacg-database/main/data3/
+CONST|DatabaseUpdate2|https://raw.githubusercontent.com/bika-robot/picacg-database/main/version3.txt
+CONST|DatabaseDownload2|https://raw.githubusercontent.com/bika-robot/picacg-database/main/data3/
+CONST|Issues1|https://github.com/tonquer/picacg-qt/issues
+CONST|UpdateVersion|v1.5.4
+CONST|RealVersion|v1.5.4
+CONST|TimeVersion|2026-2-28
+CONST|DbVersion|
+CONST|Waifu2xVersion|1.2.0
+CONST|CloseWaifu2x|False
+CONST|CanWaifu2x|True
+CONST|ErrorMsg|
+CONST|Encode|0
+CONST|UseCpuNum|0
+CONST|EncodeGpu|
+CONST|Waifu2xPath|waifu2x
+CONST|IsTips|1
+CONST|ProxyUrl1|https://github.com/tonquer/picacg-qt/discussions/48
+CONST|Waifu2xUrl|https://github.com/tonquer/picacg-qt/discussions/76
+CONST|ApiDomain|['picaapi.picacomic.com', 'post-api.wikawika.xyz']
+CONST|ImageDomain|['s3.picacomic.com', 's2.picacomic.com', 'storage.diwodiwo.xyz', 'storage1.picacomic.com', 'storage.tipatipa.xyz', 'www.picacomic.com', 'storage-b.picacomic.com']
+
+--------------------------------------------------------------------------------
+SECTION 3b: RUNTIME GLOBAL CONFIG (src/config/global_config.py, GlobalItem-backed)
+Format: GLOBAL|<NAME>|<default value>
+--------------------------------------------------------------------------------
+GLOBAL|Ver|10
+GLOBAL|VerTime|2025-10-12
+GLOBAL|WebDnsList|[]
+GLOBAL|LocalProxyIndex|[2, 3]
+GLOBAL|Address|['104.21.91.145', '188.114.98.153']
+GLOBAL|AddressIpv6|['2606:4700:d:28:dbf4:26f3:c265:73bc', '2a06:98c1:3120:ca71:be2c:c721:d2b5:5dbf']
+GLOBAL|ImageUrl|s3.picacomic.com
+GLOBAL|ImageServerList|['s3.picacomic.com', 'storage.diwodiwo.xyz', 's2.picacomic.com', 'storage1.picacomic.com', 'storage-b.picacomic.com']
+GLOBAL|ImageJumList|['img.picacomic.com', 'img.diwodiwo.xyz', 'img.safedataplj.com']
+GLOBAL|ProxyApiDomain|bika-api.jpacg.cc
+GLOBAL|ProxyImgDomain|bika-img.jpacg.cc
+GLOBAL|ProxyApiDomain2|bika2-api.jpacg.cc
+GLOBAL|ProxyImgDomain2|bika21-img.jpacg.cc
+GLOBAL|SniDomain|['picacomic.com', 'diwodiwo.xyz', 'tipatipa.xyz', 'wikawika.xyz']
+
+--------------------------------------------------------------------------------
+SECTION 3c: REQUEST HEADER CONSTANTS (src/tools/tool.py, ToolUtil.GetHeader)
+Format: HEADER|<header name>|<value source>
+--------------------------------------------------------------------------------
+HEADER|api-key|config.ApiKey
+HEADER|accept|config.Accept
+HEADER|app-channel|config.AppChannel
+HEADER|time|str(int(time.time()))
+HEADER|app-uuid|config.Uuid
+HEADER|nonce|str(uuid.uuid1()).replace("-", "")
+HEADER|signature|ToolUtil.HashKey(signature source, native key)
+HEADER|app-version|config.Version
+HEADER|image-quality|config.ImageQuality
+HEADER|app-platform|config.Platform
+HEADER|app-build-version|config.BuildVersion
+HEADER|user-agent|config.Agent
+HEADER|version|config.UpdateVersion
+HEADER|Content-Type|application/json; charset=UTF-8  (only for POST/PUT)
+HEADER|authorization|Bearer <token>  (added by server.Server for authenticated calls)
+
+--------------------------------------------------------------------------------
+SECTION 4: VIEW -> API MAPPING
+Format: VIEWMAP|<view dir>|<comma-separated Req class names used there>
+--------------------------------------------------------------------------------
+VIEWMAP|category|CategoryReq,KnightRankReq,RankReq
+VIEWMAP|chat|GetChatReq
+VIEWMAP|chat_new|GetChatReq,GetNewChatLoginReq,GetNewChatProfileReq,GetNewChatReq,SendNewChatImgMsgReq,SendNewChatMsgReq
+VIEWMAP|comment|AppCommentInfoReq,AppCommentLikeReq,AppSendCommentInfoReq,CommentsLikeReq,CommentsReportReq,GameCommentsLikeReq,GetCommentsChildrenReq,GetCommentsReq,GetGameCommentsReq,GetUserCommentReq,SendCommentChildrenReq,SendCommentReq,SendGameCommentsReq
+VIEWMAP|convert|
+VIEWMAP|download|GetComicsBookReq
+VIEWMAP|fried|AppCommentInfoReq,AppInfoReq
+VIEWMAP|game|GetGameReq
+VIEWMAP|help|CheckUpdateConfigReq,CheckUpdateDatabaseReq,CheckUpdateInfoReq,CheckUpdateReq,DownloadDatabaseReq,DownloadDatabaseWeekReq
+VIEWMAP|index|GetCollectionsReq,GetRandomReq
+VIEWMAP|info|BookLikeReq,FavoritesAdd,GetComicsBookEpsReq,GetComicsBookReq,GetGameInfoReq,GetIdByShareIdReq,GetShareIdReq
+VIEWMAP|main|InitReq
+VIEWMAP|nas|(none active; GetComicsBookReq only in a commented-out line in nas_view.py)
+VIEWMAP|read|(none - uses the local download pipeline and DownloadBookReq via task/task_download.py)
+VIEWMAP|search|AdvancedSearchReq,CategoriesSearchReq,GetComicsRecommendation,GetRecommendByIdReq
+VIEWMAP|setting|(none)
+VIEWMAP|tool|(none - AddFavoritesFoldReq2 references are commented out and the class does not exist)
+VIEWMAP|user|ChangePasswordReq,FavoritesAdd,FavoritesReq,LoginReq,RegisterReq,SpeedTestPingReq,SpeedTestReq
+VIEWMAP|user (commented-out only)|InitReq (login_widget.py)
+
+--------------------------------------------------------------------------------
+SECTION 5: REQ CLASSES NOT REFERENCED FROM ANY view/ DIRECTORY
+Format: NONVIEW|<Req class>|<where it is used instead>
+--------------------------------------------------------------------------------
+NONVIEW|InitAndroidReq|server/user_handler.py, tools/user.py (commented call)
+NONVIEW|ForgotPasswordReq|server/user_handler.py only
+NONVIEW|ResetPasswordReq|server/user_handler.py only
+NONVIEW|GetUserInfo|component/widget/navigation_widget.py (navigation bar, not under view/)
+NONVIEW|SetAvatarInfoReq|component/widget/navigation_widget.py (navigation bar, not under view/)
+NONVIEW|PunchIn|component/widget/navigation_widget.py (navigation bar, not under view/)
+NONVIEW|SetTitleReq|not referenced anywhere
+NONVIEW|GetKeywords|server/user_handler.py only
+NONVIEW|GetAPPsReq|server/user_handler.py only
+NONVIEW|LoginAPPReq|server/user_handler.py only
+NONVIEW|GetComicsBookOrderReq|task/task_download.py, tools/book.py (commented), server/user_handler.py
+NONVIEW|DownloadBookReq|task/task_download.py (image download), server/user_handler.py
+NONVIEW|GetUserCommentReq|also used by component/widget/comment_widget.py
+
+--------------------------------------------------------------------------------
+SECTION 6: REQUEST CLASS -> HANDLER MAPPING (src/server/user_handler.py)
+Format: HANDLER|<Req class>|<Handler class>
+--------------------------------------------------------------------------------
+HANDLER|InitReq|InitHandler
+HANDLER|InitAndroidReq|InitAndroidHandler
+HANDLER|LoginReq|LoginHandler
+HANDLER|RegisterReq|RegisterHandler
+HANDLER|GetUserInfo|GetUserInfoHandler
+HANDLER|SetAvatarInfoReq|SetAvatarInfoHandler
+HANDLER|PunchIn|PunchInHandler
+HANDLER|CategoryReq|CategoryHandler
+HANDLER|GetComicsBookEpsReq|GetComicsBookEpsHandler
+HANDLER|GetShareIdReq|GetShareIdHandler
+HANDLER|GetComicsBookOrderReq|GetComicsBookOrderHandler
+HANDLER|GetComicsBookReq|GetComicsBookHandler
+HANDLER|SpeedTestPingReq|SpeedTestPingHandler
+HANDLER|DownloadBookReq|DownloadBookHandler
+HANDLER|CheckUpdateDatabaseReq|DownloadDatabaseReqHandler
+HANDLER|DownloadDatabaseReq|DownloadDatabaseReqHandler
+HANDLER|DownloadDatabaseWeekReq|DownloadDatabaseReqHandler
+HANDLER|CheckUpdateReq|CheckUpdateHandler
+HANDLER|CheckUpdateInfoReq|CheckUpdateInfoHandler
+HANDLER|CheckUpdateConfigReq|CheckUpdateConfigHandler
+HANDLER|SpeedTestReq|SpeedTestHandler
+HANDLER|GetUserCommentReq|MsgHandler
+HANDLER|FavoritesAdd|MsgHandler
+HANDLER|FavoritesReq|MsgHandler
+HANDLER|AdvancedSearchReq|MsgHandler
+HANDLER|CategoriesSearchReq|MsgHandler
+HANDLER|RankReq|MsgHandler
+HANDLER|KnightRankReq|MsgHandler
+HANDLER|GetCommentsReq|MsgHandler
+HANDLER|GetComicsRecommendation|MsgHandler
+HANDLER|BookLikeReq|MsgHandler
+HANDLER|CommentsLikeReq|MsgHandler
+HANDLER|CommentsReportReq|MsgHandler
+HANDLER|GetKeywords|MsgHandler
+HANDLER|SendCommentReq|MsgHandler
+HANDLER|SendCommentChildrenReq|MsgHandler
+HANDLER|GetCommentsChildrenReq|MsgHandler
+HANDLER|GetChatReq|MsgHandler
+HANDLER|GetCollectionsReq|MsgHandler
+HANDLER|GetRandomReq|MsgHandler
+HANDLER|GetAPPsReq|MsgHandler
+HANDLER|LoginAPPReq|MsgHandler
+HANDLER|AppInfoReq|MsgHandler
+HANDLER|AppCommentInfoReq|MsgHandler
+HANDLER|GetGameReq|MsgHandler
+HANDLER|GetGameInfoReq|MsgHandler
+HANDLER|GetGameCommentsReq|MsgHandler
+HANDLER|SendGameCommentsReq|MsgHandler
+HANDLER|GameCommentsLikeReq|MsgHandler
+HANDLER|ForgotPasswordReq|MsgHandler
+HANDLER|ResetPasswordReq|MsgHandler
+HANDLER|ChangePasswordReq|MsgHandler
+HANDLER|GetNewChatReq|MsgHandler
+HANDLER|GetNewChatProfileReq|MsgHandler
+HANDLER|GetNewChatLoginReq|MsgHandler
+HANDLER|SendNewChatMsgReq|MsgHandler
+HANDLER|SendNewChatImgMsgReq|MsgHandler
+HANDLER|GetIdByShareIdReq|MsgHandler
+HANDLER|GetRecommendByIdReq|MsgHandler
+HANDLER|AppSendCommentInfoReq|(no @handler decorator registered)
+HANDLER|AppCommentLikeReq|(no @handler decorator registered)
+
+--------------------------------------------------------------------------------
+SECTION 7: TOTALS
+--------------------------------------------------------------------------------
+TOTAL|view directories|18
+TOTAL|view python files (incl. __init__.py)|91
+TOTAL|view python files (excl. __init__.py)|72
+TOTAL|top-level classes in view/|83
+TOTAL|empty (0-byte) view files|20 (19 __init__.py markers + view/search/search_bar.py placeholder)
+TOTAL|Req classes in src/server/req.py|62 concrete ServerReq subclasses (+1 ServerReq base class = 63 classes total in the file)
+TOTAL|distinct API hosts contacted|7 (picaapi.picacomic.com, live-server.bidobido.xyz, post-api.wikawika.xyz, recommend.go2778.com, app.jpacg.cc/app2/app3, raw.jpacg.cc + raw.githubusercontent.com, user-supplied NAS endpoints)
+TOTAL|config.py module-level constants|52
+TOTAL|global_config.py GlobalItem settings|14
+TOTAL|request headers emitted|13 (+Content-Type for POST/PUT, +authorization for authenticated calls)
+TOTAL|websocket endpoints|2
+TOTAL|view dirs with no direct API calls|5 (convert, read, setting, tool, nas)
+TOTAL|Req classes not used by any view/|11
+TOTAL|ENDPOINT records|64
+TOTAL|UIFILE records|90
+TOTAL|CONST records|52
+TOTAL|VIEWMAP records|19
+TOTAL|HANDLER records|61 (59 decorated @handler registrations + 2 unregistered)
+================================================================================

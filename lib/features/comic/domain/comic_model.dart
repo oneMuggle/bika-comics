@@ -211,3 +211,80 @@ class ComicDetail {
 
   const ComicDetail({required this.comic, required this.episodes});
 }
+
+/// 章节列表的一页（带分页元信息）
+///
+/// 第六十二批新增。对应 API 响应体的 `data.eps` 节点：
+/// ```json
+/// { "docs": [ ... ], "total": 389, "pages": 2, "limit": 200, "page": 1 }
+/// ```
+/// 桌面端 `src/tools/book.py:162-174` 读取同一组字段
+/// （`total` -> `epsCount`，`pages` -> `maxLoadEps`，`limit` -> `epsLimit`）。
+@immutable
+class EpisodePage {
+  /// 当前页的章节
+  final List<Episode> episodes;
+
+  /// 总章节数（`eps.total`）
+  final int total;
+
+  /// 总页数（`eps.pages`）
+  final int pages;
+
+  /// 每页条数（`eps.limit`）
+  final int limit;
+
+  /// 当前页号（`eps.page`）
+  final int page;
+
+  const EpisodePage({
+    required this.episodes,
+    this.total = 0,
+    this.pages = 1,
+    this.limit = 0,
+    this.page = 1,
+  });
+}
+
+/// 章节**图片**列表的一页（带分页元信息）
+///
+/// 第六十二批新增。对应 API 响应体的 `data.pages` 节点：
+/// ```json
+/// { "docs": [ ... ], "total": 4896, "pages": 25, "limit": 200, "page": 1 }
+/// ```
+///
+/// 桌面端 `src/tools/book.py:221-241` 读取同一组字段：
+///   `total` -> `epsInfo.maxPics`（该章节图片总数）
+///   `pages` -> `epsInfo.maxPicPages`（图片分页组数）
+///   `limit` -> `epsInfo.picLimit`（每组图片数）
+///   `page`  -> `epsInfo.curLoadPicPages`
+///
+/// **为什么重要**：真实 API 抓取数据（150,574 条漫画记录）显示，
+/// 有 6,354 部**单章**漫画的一个章节内图片数超过 200（即超过一页），
+/// 最多的一章有 4,896 张图片 = 25 个分页组。
+/// 移动端此前固定只请求 `?page=1`，这些章节只能看到前 200 张图。
+@immutable
+class ImagePage {
+  /// 当前页的图片 URL 列表
+  final List<String> urls;
+
+  /// 该章节图片总数（`pages.total`）
+  final int total;
+
+  /// 总页数（`pages.pages`）
+  final int pages;
+
+  /// 每页条数（`pages.limit`）
+  final int limit;
+
+  /// 当前页号（`pages.page`）
+  final int page;
+
+  const ImagePage({
+    required this.urls,
+    this.total = 0,
+    this.pages = 1,
+    this.limit = 0,
+    this.page = 1,
+  });
+}

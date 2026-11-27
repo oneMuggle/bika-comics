@@ -181,7 +181,15 @@ class ApiEndpoints {
       '/comics/$comicId/order/$episodeId/pages?page=$page';
 
   // 章节列表
-  static String episodes(String comicId) => '/comics/$comicId/eps';
+  //
+  // 第六十二批：补上分页参数。对齐桌面端 `GetComicsBookEpsReq`
+  //   `comics/{cid}/eps?page={page}`
+  // 桌面端会递归加载所有分页（`src/view/info/book_eps_view.py:66`
+  // `LoadEpsData(page)` → `LoadEpsData(page+1)`），
+  // 移动端此前固定只取第 1 页 —— 长篇漫画（真实数据里 epsCount 最高 389 章）
+  // 第 1 页之外的章节**完全不可见**，也无法下载/阅读。
+  static String episodes(String comicId, {int page = 1}) =>
+      '/comics/$comicId/eps?page=$page';
 
   // 用户收藏夹
   static String userFavorites(String uid, {int page = 1}) =>

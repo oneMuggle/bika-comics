@@ -153,3 +153,49 @@ String mediaUrlFrom(dynamic raw) {
   if (fileServer.isEmpty && path.isEmpty && url != null) return url;
   return resolveMediaUrl(fileServer, path);
 }
+
+/// 从**章节页面文档**（page doc）解析出图片 URL。
+///
+/// ## 为什么需要这个函数
+///
+/// pica 的 `/comics/{id}/order/{eid}/pages` 返回的每一项是**包装对象**：
+/// ```json
+/// { "_id": "...",
+///   "media": { "fileServer": "...", "path": "...", "originalName": "..." } }
+/// ```
+/// 桌面端 `src/tools/book.py:251` 正是 `ToolUtil.ParseFromData(picInfo, data['media'])`,
+/// 即**从 `media` 子对象**取 fileServer/path。
+///
+/// 移动端此前把**整个 page doc** 传给 `mediaUrlFrom`，而 `mediaUrlFrom` 只读
+/// 顶层 `fileServer` / `path` / `url` —— 对包装对象一律返回空串。
+/// 阅读器 (`reader_screen.dart`) 用的是 `p['media']`，所以**阅读正常、下载全空**：
+/// 同一个 API 两个消费点写法不一致，每章下载 0 张图。
+///
+/// ## 兼容性
+///
+/// 少数情况下 page doc 可能**直接**带 `fileServer` / `path`（没有 `media` 包装）。
+/// 因此这里**先看 `media` 子对象，没有再看顶层**，两种形态都能取到 URL。
+/// 这条回退是防御性的：真实 API 的 page doc 恒为包装形态。
+String pageDocImageUrl(dynamic pageDoc) {
+  if (pageDoc is! Map) return '';
+
+  final media = pageDoc['media'];
+  if (media is Map) {
+    final url = mediaUrlFrom(media);
+    if (url.isNotEmpty) return url;
+  }
+  // 回退：直接读顶层的 fileServer / path / url
+  return mediaUrlFrom(pageDoc);
+}
+
+/// 从一组章节页面文档中解析出全部图片 URL（自动跳过解析不出的页）。
+///
+/// 下载器与阅读器共用此函数，保证两个消费点**永远**取到同一批 URL。
+List<String> pageDocImageUrls(Iterable<dynamic> pageDocs) {
+  final result = <String>[];
+  for (final doc in pageDocs) {
+    final url = pageDocImageUrl(doc);
+    if (url.isNotEmpty) result.add(url);
+  }
+  return result;
+}

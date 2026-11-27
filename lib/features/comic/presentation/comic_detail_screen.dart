@@ -19,18 +19,22 @@ import '../../download/presentation/download_screen.dart';
 final comicDetailProvider =
     FutureProvider.family<ComicDetail, String>((ref, comicId) async {
   final api = ApiClient.instance;
+  final repo = ref.read(comicRepositoryProvider);
 
   // 并行请求详情和章节列表
-  final results = await Future.wait([
+  //
+  // 第六十二批：章节列表改为**自动翻完所有分页**（桌面端
+  // `src/view/info/book_eps_view.py:66` LoadEpsData 递归加载每一页）。
+  // 此前固定只取第 1 页，长篇漫画的其余章节完全不可见。
+  // 注意：两个 Future 的返回类型不同（Response vs List<Episode>），
+  // `Future.wait([...])` 会推断成 `List<Object>`，取 `results[0].data` 就编译不过。
+  // 因此这里用 `Future.wait` 的 record 形式，保留每个 Future 的静态类型。
+  final (detailResponse, episodes) = await (
     api.get(ApiEndpoints.comicDetail(comicId)),
-    api.get(ApiEndpoints.episodes(comicId)),
-  ]);
+    repo.getAllEpisodes(comicId),
+  ).wait;
 
-  final comic = Comic.fromJson(results[0].data['data']);
-  final epsData = results[1].data['data']['eps'];
-  final episodes = (epsData['docs'] as List)
-      .map((e) => Episode.fromJson(e))
-      .toList();
+  final comic = Comic.fromJson(detailResponse.data['data']);
 
   return ComicDetail(comic: comic, episodes: episodes);
 });

@@ -2,14 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/api/api_client.dart';
 import '../../../core/db/database.dart';
-import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
-// 注：comic_model 里的 Episode 与 database.dart 中的同名 Drift 类冲突，
-// 这里只用 comic_model 的 Episode（用于 API 响应解析），
-// 因此通过前缀 import 避免歧义。
-import '../../comic/domain/comic_model.dart' as cm;
+import '../../comic/data/comic_repository.dart';
 import '../../reader/data/history_repository.dart';
 import '../../reader/presentation/reader_screen.dart';
 
@@ -152,11 +147,20 @@ class _HistoryTile extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     try {
       // 拉章节列表
-      final api = ApiClient.instance;
-      final resp = await api.get(ApiEndpoints.episodes(remoteId));
-      final docs = (resp.data['data']['eps']['docs'] as List? ?? []);
-      final episodes =
-          docs.map((e) => cm.Episode.fromJson(e as Map<String, dynamic>)).toList();
+      //
+      // 第六十二批：改用 `getAllEpisodes` 自动翻完所有分页。
+      // 此前固定只取第 1 页（`eps?page=1`），对于长篇漫画
+      // （真实数据里 epsCount 最高 389 章），第 1 页之外的章节
+      // 根本不在列表里 —— 用户读过的章节若落在后续页，
+      // 历史恢复就会退化成"跳到第 1 章第 1 页"。
+      // 桌面端 `src/view/info/book_eps_view.py:66` LoadEpsData
+      // 同样是递归加载所有分页。
+      // `_continueReading` 是 ConsumerWidget 的普通方法，`ref` 不在作用域内，
+      // 因此从 ProviderScope 容器取 repository（与 comic_detail_screen.dart
+      // 的 `_downloadEpisode` 同一模式）。
+      final repo = ProviderScope.containerOf(context)
+          .read(comicRepositoryProvider);
+      final episodes = await repo.getAllEpisodes(remoteId);
       if (episodes.isEmpty) {
         messenger.showSnackBar(
           const SnackBar(content: Text('该漫画暂无章节，无法恢复')),

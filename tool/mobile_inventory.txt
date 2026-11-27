@@ -1,0 +1,288 @@
+MOBILE_INVENTORY_VERSION|1
+TARGET_PROJECT|bika-comics
+TARGET_PLATFORM|Flutter (Dart) + Riverpod + Dio + Drift/SQLite
+SOURCE_ROOT|lib/
+GENERATED_BY|static source analysis of lib/**/*.dart (no code executed)
+
+================================================================
+SECTION_1_SCREEN_INVENTORY
+Format: SCREEN|<feature dir>|<file name>|<top-level widget class>|<one-line purpose>
+Scope: lib/features/*/presentation/*.dart and lib/features/history
+================================================================
+SCREEN|auth|change_password_screen.dart|ChangePasswordScreen|Change password form (old/new/confirm) that calls PUT /users/password then logs out.
+SCREEN|auth|forgot_password_screen.dart|ForgotPasswordScreen|Three-step forgotten-password flow: email -> security question -> new password via POST /auth/forgot-password and /auth/reset-password.
+SCREEN|auth|login_screen.dart|LoginScreen|Email/password sign-in form with auto punch-in (POST /auth/sign-in) and links to register/forgot-password.
+SCREEN|auth|profile_screen.dart|ProfileScreen|User profile hub: avatar/title editing, punch-in, logout, my-comments list (GET /users/my-comments), links to history/favourites/follows/change-password.
+SCREEN|auth|register_screen.dart|RegisterScreen|Account registration form (email, password, name, optional birthday) via POST /auth/register.
+SCREEN|chat|chat_room_screen.dart|ChatRoomScreen|Single chat room over WebSocket: text and image messages, emoji picker, replies, online-user count, reply-to and send-action settings.
+SCREEN|chat|chat_rooms_screen.dart|ChatRoomsScreen|Chat room list; auto-logs into the chat server with saved credentials then loads GET room/list.
+SCREEN|comic|advanced_search_screen.dart|AdvancedSearchScreen|Advanced multi-condition search: keyword plus multiple categories and sort, via POST /comics/advanced-search.
+SCREEN|comic|batch_search_screen.dart|BatchSearchScreen|Batch keyword search tool: queues keywords, runs sequential GET /comics/search per keyword and shows per-item results/errors.
+SCREEN|comic|categories_screen.dart|CategoriesScreen|Category browser grid (GET /categories) plus CategoryComicsScreen sub-page listing GET /comics?page=&c=&s=.
+SCREEN|comic|comic_detail_screen.dart|ComicDetailScreen|Comic detail page: GET /comics/{id} + /comics/{id}/eps in parallel, favourite/follow/like actions, share, download, related recommendations, entry to reader and comments.
+SCREEN|comic|comic_list_screen.dart|ComicListScreen|Infinite-scroll full comic list (GET /comics?page=N) with pull-to-refresh and drawer entry.
+SCREEN|comic|comments_screen.dart|CommentsScreen|Comic comment thread: list/send comments, expand child comments, like and report (GET/POST /comics/{id}/comments, /comments/{id}/...).
+SCREEN|comic|forbid_words_screen.dart|ForbidWordsScreen|Manage search block words: toggle filter by title/tag/category, add and remove custom words persisted in settings storage.
+SCREEN|comic|knight_rank_screen.dart|KnightRankScreen|Knight leaderboard tab listing GET /comics/knight-leaderboard with pull-to-refresh.
+SCREEN|comic|leaderboard_screen.dart|LeaderboardScreen|Comic leaderboard with 4 tabs (daily/weekly/monthly via GET /comics/leaderboard + knight tab).
+SCREEN|comic|my_favourites_screen.dart|MyFavouritesScreen|My favourites list (GET /users/favourite?s=&page=) with newest-first/oldest-first sort switching.
+SCREEN|comic|my_follows_screen.dart|MyFollowsScreen|My followed-comics list (GET /my/follows) with pull-to-refresh and open-detail.
+SCREEN|comic|pica_share_resolver_screen.dart|PicaShareResolverScreen|Resolves a Pica share code to a comic ID via GET recommend.go2778.com/pic/share/get then pushes the comic detail page.
+SCREEN|comic|search_screen.dart|SearchScreen|Search page: keyword input, category chips, hot keywords (GET /keywords), local search history (Drift), results via GET /comics/search.
+SCREEN|download|download_screen.dart|DownloadsScreen|Download manager: list of download tasks with per-task/overall pause-resume-cancel-delete, progress detail sheet and export entry.
+SCREEN|export|export_screen.dart|ExportScreen|Export downloaded chapters: pick episodes, then ZIP-pack or share raw images through the system share sheet.
+SCREEN|friend|friend_post_detail_screen.dart|FriendPostDetailScreen|Single friend-post (gui-tie) detail with media grid, post like, comment list, send comment and comment like.
+SCREEN|friend|friend_posts_screen.dart|FriendPostsScreen|Friend-post feed with offset-based infinite scroll from GET /posts.
+SCREEN|game|game_detail_screen.dart|GameDetailScreen|Game detail: title, icon, description, platform badges, screenshots, download links, and an embedded game comment section.
+SCREEN|game|game_list_screen.dart|GameListScreen|Paginated game grid (GET /games?page=N) with infinite scroll and pull-to-refresh.
+SCREEN|help|help_screen.dart|HelpScreen|About/help page: app version, GitHub repo/issues/releases links, log and download directory paths with clipboard copy.
+SCREEN|history|history_screen.dart|HistoryScreen|Reading history list from the local Drift DB, with delete-item / clear-all and resume-reading that reopens the reader at the saved page.
+SCREEN|home|home_screen.dart|HomeScreen|Home tab shell with Collections tab (GET /collections) and Random tab (GET /comics/random) plus a drawer opener.
+SCREEN|nas|local_reader_screen.dart|LocalReaderScreen|Offline reader for a local image folder: single-page and strip modes, no API or login required.
+SCREEN|nas|nas_local_screen.dart|NasLocalScreen|Sandbox file browser: root directories, recursive subdirectory browsing, image-folder detection, and opening ZIP/CBZ comic packages.
+SCREEN|nas|zip_reader_screen.dart|ZipReaderScreen|ZIP/CBZ comic package reader rendering in-memory extracted images with single/strip modes.
+SCREEN|pica_apps|pica_apps_screen.dart|PicaAppsScreen|List of Pica-recommended third-party apps (GET /pica-apps) with icon, title and external link launch.
+SCREEN|reader|reader_screen.dart|ReaderScreen|Comic reader: fetches episode pages (GET /comics/{cid}/order/{eid}/pages), single/strip modes, chapter switching, auto-next, and throttled history persistence.
+SCREEN|settings|settings_screen.dart|SettingsScreen|Settings page: API base URL, proxy type/host/port, theme mode, cache clear, plus links to NAS local, speed test, forbid words, batch search and help.
+SCREEN|settings|speed_test_screen.dart|SpeedTestScreen|Network speed test page showing ping latency and download throughput from the speed test provider.
+
+================================================================
+SECTION_2_REPOSITORY_DOMAIN_INVENTORY
+Format: REPO|<feature dir>|<file name>|<top-level class names>|<API endpoints it calls (literal path strings seen in the file)>
+Scope: lib/features/*/data/*.dart, lib/features/*/domain/*.dart, plus core/api, core/db, core/storage (feature dir = <core>)
+================================================================
+REPO|auth|auth_repository.dart|AuthNotifier|'/auth/sign-in' (POST), '/auth/register' (POST), '/auth/logout' (POST), '/users/punch-in' (POST), '/users/profile' (GET), '/users/password' (PUT), '/auth/forgot-password' (POST), '/auth/reset-password' (POST), '/users/avatar' (PUT), '/users/{id}/title' (PUT)
+REPO|auth|user_repository.dart|UserRepository|'/users/my-comments' (GET, query page)
+REPO|auth|auth_state.dart|AuthUser, AuthState|none (pure state models: isLoggedIn, token, user, isLoading, error)
+REPO|chat|chat_repository.dart|ChatRepository|'https://live-server.bidobido.xyz/' base + 'auth/signin' (POST), 'user/profile' (GET), 'room/list' (GET), 'message/send-message' (POST), 'message/send-image' (POST multipart), websocket 'wss://live-server.bidobido.xyz/?token=&room='
+REPO|chat|chat_model.dart|ChatRoom, ChatProfile, ChatMessage, ChatMessageReply|none (pure chat models)
+REPO|comic|comic_repository.dart|ComicRepository|'/comics/{id}/favourite' (POST/DELETE), '/comics/{id}/follow' (POST/DELETE), '/comics/{id}/like' (POST), '/users/favourite' (GET), '/my/follows' (GET), '/comics/search' (GET), '/comics/advanced-search' (POST), '/comics/{id}/comments' (GET/POST), '/comments/{id}/like' (POST, inline literal), '/comments/{id}/childrens?page=' (GET, inline literal), '/comments/{id}' (POST, inline literal), '/comments/{id}/report' (POST, inline literal), '/keywords' (GET), '/comics/{id}/recommendation' (GET)
+REPO|comic|batch_search_repository.dart|BatchSearchItem, BatchSearchState, BatchSearchNotifier|indirect via ComicRepository.search -> '/comics/search' (GET)
+REPO|comic|forbid_words_repository.dart|ForbidWordsState, ForbidWordsNotifier, ForbidWordsFilter|none (settings-storage backed block-word state; no HTTP)
+REPO|comic|forbid_words_filter_helper.dart|filteredComicsProvider|none (pure local filter over Comic lists using ForbidWordsFilter)
+REPO|comic|knight_repository.dart|KnightRepository|'/comics/knight-leaderboard' (GET)
+REPO|comic|pica_share_service.dart|PicaShareService|'https://recommend.go2778.com/pic/share/get' (GET), 'https://recommend.go2778.com/pic/share/set' (GET), 'https://recommend.go2778.com/pic/recommend/get' (GET)
+REPO|comic|comic_model.dart|Comic, Episode, ComicDetail|none (pure comic models)
+REPO|comic|comment_model.dart|Comment|none (pure comment model)
+REPO|comic|knight_model.dart|KnightAvatar, KnightUser, KnightRank|none (pure knight-rank models)
+REPO|download|download_repository.dart|DownloadTaskStatus, DownloadTask, EpisodeDownloadProgress, DownloadRepository, DownloadProgressEvent|'/comics/{cid}/order/{eid}/pages?page=1' (GET) plus media image GET from https://storage1.picacomic.com/static/... (via Dio download with Referer https://picacomic.com)
+REPO|export|export_service.dart|ExportFormat, ExportableEpisode, ExportResult, ExportService|none (local filesystem ZIP packing and system share; no HTTP)
+REPO|friend|friend_repository.dart|FriendRepository|'https://post-api.wikawika.xyz' base + '/posts' (GET), '/posts/{id}' (GET), '/posts/{id}/comments' (GET), '/posts/{id}/like' (PUT), '/comments' (POST), '/comments/{id}/like' (PUT)
+REPO|friend|friend_post_model.dart|FriendPostUser, FriendPost, FriendPostPage, FriendComment|none (pure friend-post models)
+REPO|game|game_repository.dart|GameRepository|'/games' (GET, query page), '/games/{id}' (GET)
+REPO|game|game_comments_repository.dart|GameCommentsRepository, GameComment, GameCommentsSection, _CommentTile|'/games/{id}/comments' (GET), '/games/{id}/comments' (POST), '/games/{id}/comments/{commentId}/like' (POST)
+REPO|game|game_model.dart|GameIcon, Game, GameListPage|none (pure game models)
+REPO|nas|zip_extractor.dart|ZipImageEntry, ZipExtractionResult, ZipExtractor|none (local ZIP/CBZ parsing; no HTTP)
+REPO|pica_apps|pica_apps_repository.dart|PicaAppsRepository|'/pica-apps' (GET)
+REPO|pica_apps|pica_app_model.dart|PicaAppIcon, PicaApp|none (pure pica-app models)
+REPO|reader|history_repository.dart|HistoryRepository, ContinueReadingInfo|none (Drift local history only; no HTTP)
+REPO|settings|speed_test_service.dart|SpeedTestResult, SpeedTestService|'/categories' (GET, used for ping) and 'https://storage1.picacomic.com/static/fc75975a-af8e-40c5-8679-725d6f64d6f5.jpg' (GET stream, download speed)
+REPO|<core>|api_client.dart|ApiClient, _AuthInterceptor, _LoggingInterceptor|no hardcoded paths; injects Authorization plus Pica signature headers (api-key, signature, time, nonce, app-version, app-uuid, app-channel, image-quality, app-platform, app-build-version, version, user-agent, accept) computed by ApiSignature
+REPO|<core>|api_signature.dart|ApiSignature|no HTTP paths; builds the HMAC-SHA256 request signature over path+time+nonce+method+api-key using api-key 'C69BAF41DA5ABD1FFEDC6D2FEA56B', app-version '2.2.1.3.3.4', app-build-version '45', app-channel '3', app-uuid 'defaultUuid', app-platform 'android', image-quality 'original', user-agent 'okhttp/3.8.1', version 'v1.5.4', accept 'application/vnd.picacomic.com.v1+json'
+REPO|<core>|database.dart|Comics, Episodes, History, Downloads, DownloadProgress, SearchHistory, AppDatabase, DatabaseHolder|none (Drift/SQLite local DB: schemaVersion 3, file picacg.sqlite; tables comics, episodes, history, downloads, download_progress, search_history)
+REPO|<core>|settings_storage.dart|SettingsStorage, SettingsStorageHolder|none (secure-storage backed settings: api_base_url, proxy_config, theme_mode, reader_direction, image_quality, auto_next_episode, download_path, forbid_words, forbid_title, forbid_tag, forbid_category, chat_send_action, auto_sign)
+REPO|<core>|secure_storage.dart|SecureStorage, SecureStorageHolder|none (secure storage: api_token, refresh_token, user_id, user_name, user_email, user_avatar, user_password)
+
+================================================================
+SECTION_3_API_ENDPOINT_INVENTORY
+Format: ENDPOINT|<method if known, else GET?>|<path template>[|<source file>]
+Note: rows without a source file come from lib/shared/constants/api_constants.dart
+      (ApiEndpoints). Rows with a source file are literal paths hardcoded
+      outside api_constants.dart.
+================================================================
+ENDPOINT|POST|/auth/sign-in
+ENDPOINT|POST|/auth/register
+ENDPOINT|POST|/auth/logout
+ENDPOINT|POST|/auth/forgot-password
+ENDPOINT|POST|/auth/reset-password
+ENDPOINT|PUT|/users/password
+ENDPOINT|GET?|/user
+ENDPOINT|PUT|/users/avatar
+ENDPOINT|PUT|/users/{id}/title
+ENDPOINT|GET|/comics
+ENDPOINT|GET|/comics?page={page}
+ENDPOINT|GET|/comics?page={page}&c={category}&s={sort}
+ENDPOINT|GET|/comics/random
+ENDPOINT|GET|/comics/leaderboard
+ENDPOINT|GET|/comics/knight-leaderboard
+ENDPOINT|GET|/comics/search?q={q}&page={page}&c={categories}
+ENDPOINT|POST|/comics/advanced-search
+ENDPOINT|GET|/comics/{id}
+ENDPOINT|GET|/comics/{id}/eps
+ENDPOINT|GET|/comics/{id}/order/{episodeId}/pages?page={page}
+ENDPOINT|POST|/comics/{id}/favourite
+ENDPOINT|DELETE|/comics/{id}/favourite
+ENDPOINT|POST|/comics/{id}/follow
+ENDPOINT|DELETE|/comics/{id}/follow
+ENDPOINT|POST|/comics/{id}/like
+ENDPOINT|GET|/comics/{id}/comments?page={page}
+ENDPOINT|POST|/comics/{id}/comments
+ENDPOINT|GET|/comics/{id}/recommendation
+ENDPOINT|GET|/users/favourite?s={sort}&page={page}
+ENDPOINT|GET?|/users/{uid}/favourites?page={page}
+ENDPOINT|GET|/my/follows?s=dd&page={page}
+ENDPOINT|GET|/collections
+ENDPOINT|GET|/categories
+ENDPOINT|GET?|/tags
+ENDPOINT|GET|/keywords
+ENDPOINT|GET|/users/my-comments?page={page}
+ENDPOINT|GET?|/users/profile/comments
+ENDPOINT|GET|/users/profile
+ENDPOINT|POST|/users/punch-in
+ENDPOINT|GET|/games?page={page}
+ENDPOINT|GET|/games/{id}
+ENDPOINT|GET|/pica-apps
+ENDPOINT|GET?|/chat
+ENDPOINT|GET?|/chat/{id}/messages
+ENDPOINT|GET?|/speed
+ENDPOINT|GET?|/speed/ping
+ENDPOINT|GET|https://recommend.go2778.com/pic/share/set?c={bookId}
+ENDPOINT|GET|https://recommend.go2778.com/pic/share/get?shareId={shareId}
+ENDPOINT|GET|https://recommend.go2778.com/pic/recommend/get?c={bookId}
+ENDPOINT|GET|wss://picaapi.picacomic.com
+ENDPOINT|POST|/comments/{id}/like|lib/features/comic/data/comic_repository.dart
+ENDPOINT|GET|/comments/{id}/childrens?page={page}|lib/features/comic/data/comic_repository.dart
+ENDPOINT|POST|/comments/{id}|lib/features/comic/data/comic_repository.dart
+ENDPOINT|POST|/comments/{id}/report|lib/features/comic/data/comic_repository.dart
+ENDPOINT|GET|/games/{id}/comments?page={page}|lib/features/game/data/game_comments_repository.dart
+ENDPOINT|POST|/games/{id}/comments|lib/features/game/data/game_comments_repository.dart
+ENDPOINT|POST|/games/{id}/comments/{commentId}/like|lib/features/game/data/game_comments_repository.dart
+ENDPOINT|POST|https://live-server.bidobido.xyz/auth/signin|lib/features/chat/data/chat_repository.dart
+ENDPOINT|GET|https://live-server.bidobido.xyz/user/profile|lib/features/chat/data/chat_repository.dart
+ENDPOINT|GET|https://live-server.bidobido.xyz/room/list|lib/features/chat/data/chat_repository.dart
+ENDPOINT|POST|https://live-server.bidobido.xyz/message/send-message|lib/features/chat/data/chat_repository.dart
+ENDPOINT|POST|https://live-server.bidobido.xyz/message/send-image|lib/features/chat/data/chat_repository.dart
+ENDPOINT|GET|wss://live-server.bidobido.xyz/?token={token}&room={roomId}|lib/features/chat/data/chat_repository.dart
+ENDPOINT|GET|https://post-api.wikawika.xyz/posts?offset={offset}|lib/features/friend/data/friend_repository.dart
+ENDPOINT|GET|https://post-api.wikawika.xyz/posts/{postId}|lib/features/friend/data/friend_repository.dart
+ENDPOINT|GET|https://post-api.wikawika.xyz/posts/{postId}/comments?offset={offset}|lib/features/friend/data/friend_repository.dart
+ENDPOINT|PUT|https://post-api.wikawika.xyz/posts/{postId}/like|lib/features/friend/data/friend_repository.dart
+ENDPOINT|POST|https://post-api.wikawika.xyz/comments|lib/features/friend/data/friend_repository.dart
+ENDPOINT|PUT|https://post-api.wikawika.xyz/comments/{commentId}/like|lib/features/friend/data/friend_repository.dart
+ENDPOINT|GET|https://storage1.picacomic.com/static/{path}|lib/core/utils/media_url.dart
+ENDPOINT|GET|https://storage1.picacomic.com/static/fc75975a-af8e-40c5-8679-725d6f64d6f5.jpg|lib/features/settings/data/speed_test_service.dart
+ENDPOINT|GET|https://picacomic.com/comic/{comicId}|lib/features/comic/presentation/comic_detail_screen.dart
+ENDPOINT|GET|https://github.com/oneMuggle/bika-comics|lib/features/help/presentation/help_screen.dart
+ENDPOINT|GET|https://github.com/oneMuggle/bika-comics/issues|lib/features/help/presentation/help_screen.dart
+ENDPOINT|GET|https://github.com/oneMuggle/bika-comics/releases|lib/features/help/presentation/help_screen.dart
+
+================================================================
+SECTION_4_PROVIDER_STATE_INVENTORY
+Format: PROVIDER|<file>|<provider name>|<kind>
+Scope: every Riverpod provider and notifier class found in lib/
+================================================================
+PROVIDER|lib/app.dart|themeModeProvider|StateNotifierProvider<ThemeModeNotifier, ThemeMode>
+PROVIDER|lib/app.dart|ThemeModeNotifier|StateNotifier<ThemeMode>
+PROVIDER|lib/app.dart|rootNavigatorKey|GlobalKey<NavigatorState> (not a provider; navigation key)
+PROVIDER|lib/app.dart|shellNavigatorKey|GlobalKey<NavigatorState> (not a provider; navigation key)
+PROVIDER|lib/core/storage/settings_storage.dart|settingsStorageProvider|Provider<SettingsStorage>
+PROVIDER|lib/features/auth/data/auth_repository.dart|authStateProvider|StateNotifierProvider<AuthNotifier, AuthState>
+PROVIDER|lib/features/auth/data/auth_repository.dart|AuthNotifier|StateNotifier<AuthState>
+PROVIDER|lib/features/auth/data/user_repository.dart|userRepositoryProvider|Provider<UserRepository>
+PROVIDER|lib/features/auth/presentation/profile_screen.dart|myCommentsProvider|FutureProvider.family<List<Comment>, int>
+PROVIDER|lib/features/chat/data/chat_repository.dart|chatRepositoryProvider|Provider<ChatRepository> (onDispose closes Dio)
+PROVIDER|lib/features/comic/data/batch_search_repository.dart|batchSearchProvider|StateNotifierProvider<BatchSearchNotifier, BatchSearchState>
+PROVIDER|lib/features/comic/data/batch_search_repository.dart|BatchSearchNotifier|StateNotifier<BatchSearchState>
+PROVIDER|lib/features/comic/data/comic_repository.dart|comicRepositoryProvider|Provider<ComicRepository>
+PROVIDER|lib/features/comic/data/forbid_words_filter_helper.dart|filteredComicsProvider|Provider.family<List<Comic>, List<Comic>>
+PROVIDER|lib/features/comic/data/forbid_words_repository.dart|forbidWordsProvider|StateNotifierProvider<ForbidWordsNotifier, ForbidWordsState>
+PROVIDER|lib/features/comic/data/forbid_words_repository.dart|ForbidWordsNotifier|StateNotifier<ForbidWordsState>
+PROVIDER|lib/features/comic/data/knight_repository.dart|knightRepositoryProvider|Provider<KnightRepository>
+PROVIDER|lib/features/comic/data/knight_repository.dart|knightRankProvider|FutureProvider<List<KnightUser>>
+PROVIDER|lib/features/comic/data/pica_share_service.dart|picaShareServiceProvider|Provider<PicaShareService>
+PROVIDER|lib/features/comic/presentation/categories_screen.dart|categoriesProvider|FutureProvider<List<Category>>
+PROVIDER|lib/features/comic/presentation/categories_screen.dart|categoryComicsProvider|FutureProvider.family<List<Comic>, Category>
+PROVIDER|lib/features/comic/presentation/comic_detail_screen.dart|comicDetailProvider|FutureProvider.family<ComicDetail, String>
+PROVIDER|lib/features/comic/presentation/comic_detail_screen.dart|comicRecommendationProvider|FutureProvider.family<List<Comic>, String>
+PROVIDER|lib/features/comic/presentation/comic_list_screen.dart|comicListProvider|FutureProvider.family<List<Comic>, int>
+PROVIDER|lib/features/comic/presentation/comments_screen.dart|commentsProvider|FutureProvider.family<List<Comment>, String>
+PROVIDER|lib/features/comic/presentation/comments_screen.dart|commentChildrenProvider|FutureProvider.family<List<Comment>, String>
+PROVIDER|lib/features/comic/presentation/leaderboard_screen.dart|rankTypeProvider|StateProvider<RankType>
+PROVIDER|lib/features/comic/presentation/leaderboard_screen.dart|leaderboardProvider|FutureProvider<List<Comic>>
+PROVIDER|lib/features/comic/presentation/my_favourites_screen.dart|favouritesSortProvider|StateProvider<FavouritesSort>
+PROVIDER|lib/features/comic/presentation/my_favourites_screen.dart|myFavouritesProvider|FutureProvider.family<List<Comic>, FavouritesSort>
+PROVIDER|lib/features/comic/presentation/my_follows_screen.dart|myFollowsProvider|FutureProvider<List<Comic>>
+PROVIDER|lib/features/comic/presentation/search_screen.dart|searchQueryProvider|StateProvider<String>
+PROVIDER|lib/features/comic/presentation/search_screen.dart|selectedCategoryProvider|StateProvider<String?>
+PROVIDER|lib/features/comic/presentation/search_screen.dart|searchResultProvider|FutureProvider<List<Comic>>
+PROVIDER|lib/features/comic/presentation/search_screen.dart|searchKeywordsProvider|FutureProvider<List<String>>
+PROVIDER|lib/features/comic/presentation/search_screen.dart|localSearchHistoryProvider|FutureProvider<List<String>> (Drift)
+PROVIDER|lib/features/download/data/download_repository.dart|downloadRepositoryProvider|Provider<DownloadRepository> (onDispose closes repo)
+PROVIDER|lib/features/download/data/download_repository.dart|downloadListProvider|FutureProvider<List<DownloadTask>>
+PROVIDER|lib/features/download/data/download_repository.dart|downloadStateProvider|StateNotifierProvider<DownloadStateNotifier, AsyncValue<List<DownloadTask>>>
+PROVIDER|lib/features/download/data/download_repository.dart|DownloadStateNotifier|StateNotifier<AsyncValue<List<DownloadTask>>>
+PROVIDER|lib/features/download/data/download_repository.dart|selectedDownloadProvider|StateProvider<DownloadTask?>
+PROVIDER|lib/features/friend/data/friend_repository.dart|friendRepositoryProvider|Provider<FriendRepository> (onDispose closes Dio)
+PROVIDER|lib/features/friend/data/friend_repository.dart|friendPostsProvider|FutureProvider.family<FriendPostPage, int>
+PROVIDER|lib/features/friend/data/friend_repository.dart|friendPostProvider|FutureProvider.family<FriendPost, String>
+PROVIDER|lib/features/game/data/game_comments_repository.dart|gameCommentsRepositoryProvider|Provider<GameCommentsRepository>
+PROVIDER|lib/features/game/data/game_comments_repository.dart|gameCommentsProvider|FutureProvider.family<List<GameComment>, String>
+PROVIDER|lib/features/game/data/game_repository.dart|gameRepositoryProvider|Provider<GameRepository>
+PROVIDER|lib/features/game/data/game_repository.dart|gamesListProvider|FutureProvider.family<GameListPage, int>
+PROVIDER|lib/features/game/data/game_repository.dart|gameDetailProvider|FutureProvider.family<Game, String>
+PROVIDER|lib/features/history/presentation/history_screen.dart|historyProvider|FutureProvider<List<HistoryWithRemoteId>> (Drift)
+PROVIDER|lib/features/home/presentation/home_screen.dart|homeCollectionsProvider|FutureProvider<List<ComicCollection>>
+PROVIDER|lib/features/home/presentation/home_screen.dart|homeRandomProvider|FutureProvider<List<Comic>>
+PROVIDER|lib/features/home/presentation/home_screen.dart|homeTabIndexProvider|StateProvider<int>
+PROVIDER|lib/features/pica_apps/data/pica_apps_repository.dart|picaAppsRepositoryProvider|Provider<PicaAppsRepository>
+PROVIDER|lib/features/pica_apps/data/pica_apps_repository.dart|picaAppsListProvider|FutureProvider<List<PicaApp>>
+PROVIDER|lib/features/reader/presentation/reader_screen.dart|episodePagesProvider|FutureProvider.family<List<String>, ({String comicId, String episodeId})>
+PROVIDER|lib/features/settings/data/speed_test_service.dart|speedTestServiceProvider|Provider<SpeedTestService>
+PROVIDER|lib/features/settings/data/speed_test_service.dart|speedTestProvider|FutureProvider<SpeedTestResult>
+PROVIDER|lib/features/settings/presentation/settings_screen.dart|settingsScreenProvider|StateNotifierProvider<SettingsNotifier, SettingsState>
+PROVIDER|lib/features/settings/presentation/settings_screen.dart|SettingsNotifier|StateNotifier<SettingsState>
+PROVIDER|NOT_FOUND|StreamProvider|none - no StreamProvider declared anywhere in lib/
+PROVIDER|NOT_FOUND|Notifier/AsyncNotifier|none - no Notifier or AsyncNotifier subclasses; all notifiers are StateNotifier based
+
+================================================================
+SECTION_5_ROUTE_INVENTORY
+Format: ROUTE|<path>|<screen class>
+Note: Flutter named routes declared in lib/app.dart (navigation, not HTTP)
+================================================================
+ROUTE|/|MainShell
+ROUTE|/login|LoginScreen
+ROUTE|/register|RegisterScreen
+ROUTE|/settings|SettingsScreen
+ROUTE|/categories|CategoriesScreen
+ROUTE|/leaderboard|LeaderboardScreen
+ROUTE|/favourites|MyFavouritesScreen
+ROUTE|/follows|MyFollowsScreen
+ROUTE|/history|HistoryScreen
+ROUTE|/home|HomeScreen
+ROUTE|/comics|ComicListScreen
+ROUTE|/pica-share|PicaShareResolverScreen
+ROUTE|/speed-test|SpeedTestScreen
+ROUTE|/profile|ProfileScreen
+ROUTE|/change-password|ChangePasswordScreen
+ROUTE|/forgot-password|ForgotPasswordScreen
+ROUTE|/advanced-search|AdvancedSearchScreen
+ROUTE|/games|GameListScreen
+ROUTE|/forbid-words|ForbidWordsScreen
+ROUTE|/batch-search|BatchSearchScreen
+ROUTE|/friend-posts|FriendPostsScreen
+ROUTE|/friend-post-detail|FriendPostDetailScreen
+ROUTE|/chat-rooms|ChatRoomsScreen
+ROUTE|/chat-room|ChatRoomScreen
+ROUTE|/nas-local|NasLocalScreen
+ROUTE|/help|HelpScreen
+ROUTE|/pica-apps|PicaAppsScreen
+
+================================================================
+SECTION_6_FEATURE_MODULE_INVENTORY
+Format: FEATURE|<feature dir>|<data files>|<domain files>|<presentation files>|<local state backing>
+================================================================
+FEATURE|auth|auth_repository.dart, user_repository.dart|auth_state.dart|change_password_screen.dart, forgot_password_screen.dart, login_screen.dart, profile_screen.dart, register_screen.dart|secure storage (api_token, user_*, user_password)
+FEATURE|chat|chat_repository.dart|chat_model.dart|chat_room_screen.dart, chat_rooms_screen.dart|secure storage key 'chat_token'
+FEATURE|comic|batch_search_repository.dart, comic_repository.dart, forbid_words_filter_helper.dart, forbid_words_repository.dart, knight_repository.dart, pica_share_service.dart|comic_model.dart, comment_model.dart, knight_model.dart|advanced_search_screen.dart, batch_search_screen.dart, categories_screen.dart, comic_detail_screen.dart, comic_list_screen.dart, comments_screen.dart, forbid_words_screen.dart, knight_rank_screen.dart, leaderboard_screen.dart, my_favourites_screen.dart, my_follows_screen.dart, pica_share_resolver_screen.dart, search_screen.dart|settings storage forbid words
+FEATURE|download|download_repository.dart|-|download_screen.dart|Drift tables downloads, download_progress
+FEATURE|export|export_service.dart|-|export_screen.dart|local filesystem downloads directory
+FEATURE|friend|friend_repository.dart|friend_post_model.dart|friend_post_detail_screen.dart, friend_posts_screen.dart|none (remote post-api)
+FEATURE|game|game_comments_repository.dart, game_repository.dart|game_model.dart|game_detail_screen.dart, game_list_screen.dart|none
+FEATURE|help|-|-|help_screen.dart|none
+FEATURE|history|-|history_screen.dart|Drift table history
+FEATURE|home|-|home_screen.dart|none
+FEATURE|nas|zip_extractor.dart|-|local_reader_screen.dart, nas_local_screen.dart, zip_reader_screen.dart|local filesystem
+FEATURE|pica_apps|pica_apps_repository.dart|pica_app_model.dart|pica_apps_screen.dart|none
+FEATURE|reader|history_repository.dart|-|reader_screen.dart|Drift tables comics, episodes, history
+FEATURE|settings|speed_test_service.dart|-|settings_screen.dart, speed_test_screen.dart|settings storage
+FEATURE|<core>|api_client.dart, api_signature.dart, database.dart, settings_storage.dart, secure_storage.dart|-|-|-|Drift DB + secure storage

@@ -7,22 +7,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 
-import '../../../core/api/api_client.dart';
-import '../../../core/utils/media_url.dart';
-import '../../../shared/constants/api_constants.dart';
 import '../../../shared/constants/app_colors.dart';
+import '../../comic/data/comic_repository.dart';
 import '../../comic/domain/comic_model.dart' as comic;
 import '../data/history_repository.dart';
 
 /// 阅读器 Provider
+///
+/// 第六十二批：改为走共享的 `ComicRepository.getAllEpisodeImages`，
+/// 自动翻完章节图片的所有分页组。
+///
+/// ## 为什么必须翻页
+///
+/// 服务端每个分页组最多返回 200 张图片。真实 API 抓取数据
+/// （150,574 条漫画记录）显示：**6,354 部单章漫画的一章图片数超过 200**，
+/// 最多的一章有 4,896 张图片 = 25 个分页组。
+/// 旧代码固定只请求 `?page=1`，这些章节只能显示前 200 张图 ——
+/// 表现为「长章节后面全是空白 / 图片加载不出来」。
+///
+/// 桌面端同样按需翻页：`src/tools/book.py:260` 用
+/// `index = (page - 1) * limit + i` 归位图片，
+/// `src/task/task_download.py:283` 用
+/// `loadPage = task.index // picLimit + 1` 定位到具体分页组。
 final episodePagesProvider =
     FutureProvider.family<List<String>, ({String comicId, String episodeId})>(
         (ref, params) async {
-  final api = ApiClient.instance;
-  final response = await api.get(
-    ApiEndpoints.episodePages(params.comicId, params.episodeId),
-  );
-  final data = response.data['data'];
+  final repo = ref.read(comicRepositoryProvider);
   // 返回图片 URL 列表
   //
   // 桌面端 `src/task/task_download.py:342` 用
@@ -30,11 +40,9 @@ final episodePagesProvider =
   // 得到可下载的完整 URL。pica 的 `media.path` 是**相对路径**
   // （实测：'tobeimg/xxx/....jpg'），`media.fileServer` 才是主机。
   // 直接用 `path` 会得到相对路径，图片无法加载。
-  final pages = (data['pages']['docs'] as List)
-      .map<String>((p) => mediaUrlFrom(p['media']))
-      .where((url) => url.isNotEmpty)
-      .toList();
-  return pages;
+  // 图片 doc 是包装对象，媒体字段在 `media` 子对象下 —— 由
+  // `pageDocImageUrl` 统一处理（与下载器共用同一段代码）。
+  return repo.getAllEpisodeImages(params.comicId, params.episodeId);
 });
 
 /// 阅读器页面
